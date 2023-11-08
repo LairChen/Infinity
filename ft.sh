@@ -1,19 +1,16 @@
 #! /bin/sh
 
-NUM_EPOCH=30
-NUM_DATA=250
-
 cd /tmp/dataset
 unzip Baichuan2-7B-Chat.zip
 
-cd /tmp/code
+cd /tmp/code/aisino-llm
 deepspeed --hostfile="" train.py \
   --report_to "none" \
   --model_name_or_path "/tmp/dataset/Baichuan2-7B-Chat" \
-  --data_path "/tmp/code/train.json" \
-  --output_dir "/tmp/output/model" \
+  --data_path "/tmp/code/aisino-llm/train.json" \
+  --output_dir "/tmp/output" \
   --model_max_length 1024 \
-  --num_train_epochs $NUM_EPOCH \
+  --num_train_epochs 30 \
   --per_device_train_batch_size 1 \
   --gradient_accumulation_steps 1 \
   --save_strategy epoch \
@@ -31,9 +28,3 @@ deepspeed --hostfile="" train.py \
   --bf16 True \
   --tf32 False \
   --use_lora True
-
-for ((i = 1; i < $NUM_EPOCH; i++)); do
-  num=$(expr $i \* $NUM_DATA)
-  dir=$(printf /tmp/output/model/checkpoint-%d $num)
-  rm -rf $dir
-done
