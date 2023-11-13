@@ -39,7 +39,7 @@ class SupervisedDataset(Dataset):
     def __init__(self, data_path: str, tokenizer: PreTrainedTokenizerFast, model_max_length: int,
                  user_tokens: List[int] = [195], assistant_tokens: List[int] = [196]):  # noqa
         super(SupervisedDataset, self).__init__()
-        self.data = load(fp=open(data_path))
+        self.data = load(fp=open(file=data_path, encoding="utf-8"))
         self.tokenizer = tokenizer
         self.model_max_length = model_max_length
         self.user_tokens = user_tokens
@@ -57,9 +57,8 @@ class SupervisedDataset(Dataset):
         input_ids = []
         labels = []
         for message in example["conversations"]:
-            from_ = message["from"]
-            value = message["value"]
-            value_ids = self.tokenizer.encode(value)
+            from_, value = message["from"], message["value"]
+            value_ids = self.tokenizer.encode(text=value)
             if from_ == "human":
                 input_ids += self.user_tokens + value_ids
                 labels += [self.tokenizer.eos_token_id] + [self.ignore_index] * len(value_ids)
