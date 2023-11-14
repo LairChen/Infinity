@@ -17,17 +17,18 @@ cmd_train = "deepspeed --hostfile='' train.py " \
             "--model_max_length 1024 " \
             "--num_train_epochs 30 " \
             "--per_device_train_batch_size 1 " \
-            "--gradient_accumulation_steps 1 " \
             "--save_strategy epoch " \
-            "--learning_rate 2e-5 " \
+            "--save_total_limit 1 " \
             "--lr_scheduler_type constant " \
+            "--learning_rate 2e-5 " \
             "--adam_beta1 0.9 " \
             "--adam_beta2 0.98 " \
             "--adam_epsilon 1e-8 " \
             "--max_grad_norm 1.0 " \
-            "--weight_decay 1e-4 " \
             "--warmup_ratio 0.0 " \
+            "--weight_decay 1e-4 " \
             "--logging_steps 1 " \
+            "--gradient_accumulation_steps 1 " \
             "--gradient_checkpointing True " \
             "--deepspeed data/deepspeed.json " \
             "--bf16 True " \
