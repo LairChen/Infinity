@@ -1,12 +1,17 @@
+from argparse import ArgumentParser
 from os import system
 
 data_path = "/tmp/dataset"
 tune_path = "/tmp/output"
+parser = ArgumentParser()
+parser.add_argument("--model", "-m", help="base model name")
+args = parser.parse_args()
+model_name = args.model
 
-cmd_unzip = f"unzip {data_path}/Baichuan2-7B-Chat.zip -d {data_path}"  # noqa
+cmd_unzip = f"unzip {data_path}/{model_name}.zip -d {data_path}"  # noqa
 cmd_train = "deepspeed --hostfile='' train.py " \
             "--report_to none " \
-            f"--model_name_or_path {data_path}/Baichuan2-7B-Chat " \
+            f"--model_name_or_path {data_path}/{model_name} " \
             "--data_path data/train.json " \
             f"--output_dir {tune_path} " \
             "--model_max_length 1024 " \
@@ -29,7 +34,7 @@ cmd_train = "deepspeed --hostfile='' train.py " \
             "--tf32 False " \
             "--use_lora True"
 cmd_predict = "python predict.py " \
-              f"--base {data_path}/Baichuan2-7B-Chat " \
+              f"--base {data_path}/{model_name} " \
               f"--output {tune_path}"
 
 if __name__ == "__main__":
