@@ -399,19 +399,28 @@ def create_completion():
 
 
 if __name__ == "__main__":
-    def tt():
-        system("mkdir /tmp/dataset")
-        system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
-        system("chmod +x frpc/frpc")  # noqa
-        system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
-        myapp = create_app()  # noqa
-        myapp.run(host="0.0.0.0", port=8262, debug=False)
+    # def tt():
+    #     system("mkdir /tmp/dataset")
+    #     system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    #     system("chmod +x frpc/frpc")  # noqa
+    #     system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    #     myapp = create_app()  # noqa
+    #     myapp.run(host="0.0.0.0", port=8262, debug=False)
     
-    Thread(target=tt).start()
-    from fastapi import FastAPI
-    import os
-    import gradio as gr
+    # Thread(target=tt).start()
+    # from fastapi import FastAPI
+    # import os
+    # import gradio as gr
 
-    app = FastAPI()
-    demo = gr.Interface(fn=lambda: True, inputs="inputs", outputs="outputs")
-    app = gr.mount_gradio_app(app, demo, path=os.getenv('OPENI_GRADIO_URL'))  # noqa
+    # app = FastAPI()
+    # demo = gr.Interface(fn=lambda: True, inputs="inputs", outputs="outputs")
+    # app = gr.mount_gradio_app(app, demo, path=os.getenv('OPENI_GRADIO_URL'))  # noqa
+
+
+
+    system("mkdir /tmp/dataset")
+    system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    myapp = create_app()  # noqa
+    myapp.run(host="0.0.0.0", port=8262, debug=False)
