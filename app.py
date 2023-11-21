@@ -399,6 +399,8 @@ def create_completion():
 
 
 if __name__ == "__main__":
+    system("mkdir /tmp/dataset")
+    system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
     system("chmod +x frpc/frpc")  # noqa
     system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
     myapp = create_app()  # noqa
