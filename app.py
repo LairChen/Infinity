@@ -400,8 +400,13 @@ def create_completion():
 
 if __name__ == "__main__":
     system("mkdir /tmp/dataset")
+    print(1)
     system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    print(2)
     system("chmod +x frpc/frpc")  # noqa
+    print(3)
     system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    print(4)
     myapp = create_app()  # noqa
+    print(5)
     myapp.run(host="0.0.0.0", port=8262, debug=False)
