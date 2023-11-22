@@ -107,12 +107,12 @@ def create_chat_completion():
 
 
 
-if __name__ == "__main__":
-    app = FastAPI()
-    demo = gr.Interface(
-        fn=create_chat_completion,
-        inputs=gr.components.Textbox(label="Inputs"),
-        outputs=gr.components.Textbox(label="Outputs"),
-        allow_flagging="never"
-    )
-    app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+
+app = FastAPI()
+demo = gr.Interface(
+    fn=create_chat_completion,
+    inputs=gr.components.Textbox(label="Inputs"),
+    outputs=gr.components.Textbox(label="Outputs"),
+    allow_flagging="never"
+)
+app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
