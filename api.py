@@ -11,5 +11,6 @@ demo = gr.Interface(
     outputs=gr.components.Textbox(label='Output'),
     allow_flagging='never'
 )
-
+os.system("mkdir /tmp/dataset")
+os.system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
 app = gr.mount_gradio_app(app, demo, path=os.getenv('OPENI_GRADIO_URL'))
