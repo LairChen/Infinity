@@ -72,8 +72,8 @@ class ChatCompletionSchema(Schema):
 
 
 def init_env() -> None:
-    system("mkdir /tmp/dataset")
-    system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    # system("mkdir /tmp/dataset")
+    system("unzip /tmp/dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
     system("chmod +x frpc/frpc")  # noqa
     system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
     return
