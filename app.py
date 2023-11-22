@@ -16,7 +16,7 @@ from transformers import AutoTokenizer
 from transformers.generation.utils import GenerationConfig
 
 # 使用marshmallow作序列化和参数校验
-blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
+# blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
 
 
 class ChatMessageSchema(Schema):
@@ -76,8 +76,8 @@ class ChatCompletionSchema(Schema):
 def init_env() -> None:
     system("mkdir /tmp/dataset")
     system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
-    system("chmod +x frpc/frpc")  # noqa
-    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    # system("chmod +x frpc/frpc")  # noqa
+    # system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
     return
 
 
@@ -103,16 +103,16 @@ def init_model():
 #     """创建接口服务"""
 #     app = Flask(__name__)  # 声明主服务
 #     CORS(app=app)  # 允许跨域
-# 
+#
 #     app.register_blueprint(blueprint=blueprint)  # 注册蓝图
-# 
+#
 #     @app.after_request
 #     def after_request(resp: Response) -> Response:
 #         """请求后处理"""
 #         if torch.backends.mps.is_available():  # noqa
 #             torch.mps.empty_cache()  # noqa
 #         return resp
-# 
+#
 #     return app, blueprint
 
 
