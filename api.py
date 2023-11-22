@@ -4,9 +4,11 @@ import gradio as gr
 from fastapi import FastAPI
 
 app = FastAPI()
-
+def create_chat_completion():
+    """Chat接口"""
+    return 213
 demo = gr.Interface(
-    fn=lambda x: x,
+    fn=create_chat_completion,
     inputs=gr.components.Textbox(label='Input'),
     outputs=gr.components.Textbox(label='Output'),
     allow_flagging='never'
