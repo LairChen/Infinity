@@ -1,13 +1,11 @@
 from json import dumps
 from os import system
 from time import time
-from typing import Dict, Union
+from typing import Dict, Tuple, Union
 from uuid import uuid4
 
 import torch
-from apispec.ext.marshmallow import MarshmallowPlugin
-from apispec_webframeworks.flask import FlaskPlugin
-from flasgger import APISpec, Schema, Swagger, fields
+from flasgger import Schema, fields
 from flask import Flask, Blueprint, Response, current_app, request, stream_with_context
 from flask_cors import CORS
 from marshmallow import validate
@@ -15,28 +13,8 @@ from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer
 from transformers.generation.utils import GenerationConfig
 
-system("mkdir /tmp/dataset")
-system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
-system("chmod +x frpc/frpc")  # noqa
-system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
-model = AutoPeftModelForCausalLM.from_pretrained(
-    pretrained_model_name_or_path="/pretrainmodel",
-    torch_dtype=torch.float16,
-    device_map="auto",
-    trust_remote_code=True
-)
-model.generation_config = GenerationConfig.from_pretrained(
-    pretrained_model_name="/tmp/dataset/Baichuan2-7B-Chat"
-)
-tokenizer = AutoTokenizer.from_pretrained(
-    pretrained_model_name_or_path="/tmp/dataset/Baichuan2-7B-Chat",
-    use_fast=False,
-    trust_remote_code=True
-)
-blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # Chat模型
-
-
 # 使用marshmallow作序列化和参数校验
+blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
 
 
 class ChatMessageSchema(Schema):
@@ -93,16 +71,38 @@ class ChatCompletionSchema(Schema):
     choices = fields.List(fields.Nested(nested=ChatCompletionChoiceSchema))  # noqa
 
 
-def sse(line: Union[str, Dict]) -> str:
-    """Server Sent Events for stream"""
-    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+def init_env() -> None:
+    system("mkdir /tmp/dataset")
+    system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    return
 
 
-def create_app() -> Flask:
+def init_model():
+    model = AutoPeftModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path="/pretrainmodel",
+        torch_dtype=torch.float16,
+        device_map="auto",
+        trust_remote_code=True
+    )
+    model.generation_config = GenerationConfig.from_pretrained(
+        pretrained_model_name="/tmp/dataset/Baichuan2-7B-Chat"
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path="/tmp/dataset/Baichuan2-7B-Chat",
+        use_fast=False,
+        trust_remote_code=True
+    )
+    return model, tokenizer
+
+
+def init_app() -> Tuple[Flask, Blueprint]:
     """创建接口服务"""
     app = Flask(__name__)  # 声明主服务
     CORS(app=app)  # 允许跨域
-    app.register_blueprint(blueprint=blueprint)  # 添加蓝图
+
+    app.register_blueprint(blueprint=blueprint)  # 注册蓝图
 
     @app.after_request
     def after_request(resp: Response) -> Response:
@@ -111,19 +111,16 @@ def create_app() -> Flask:
             torch.mps.empty_cache()  # noqa
         return resp
 
-    # 创建Swagger
-    spec = APISpec(
-        title="My OpenAI API",  # noqa
-        version="0.0.1",  # noqa
-        openapi_version="3.0.2",  # noqa
-        plugins=[FlaskPlugin(), MarshmallowPlugin()]  # noqa
-    )
-    spec.components.security_scheme(component_id="bearer", component={"type": "http", "scheme": "bearer"})  # noqa
-    template = spec.to_flasgger(app=app, paths=[create_chat_completion])
-    app.config["SWAGGER"] = {"openapi": "3.0.2"}  # noqa
-    Swagger(app, template=template)
+    return app, blueprint
 
-    return app
+
+init_env()
+my_model, my_tokenizer = init_model()
+
+
+def sse(line: Union[str, Dict]) -> str:
+    """Server Sent Events for stream"""
+    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
 @stream_with_context
@@ -133,7 +130,7 @@ def stream_chat_generate(messages):
     choice = ChatCompletionChunkChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
     position = 0
-    for response in model.chat(tokenizer, messages, stream=True):
+    for response in my_model.chat(my_tokenizer, messages, stream=True):
         content = response[position:]
         if not content:
             continue
@@ -155,12 +152,12 @@ def create_chat_completion():
     if chat_dict["stream"]:
         # 切换到流式
         return current_app.response_class(response=stream_chat_generate(chat_dict["messages"]), mimetype="text/event-stream")
-    response = model.chat(tokenizer, chat_dict["messages"])
+    response = my_model.chat(my_tokenizer, chat_dict["messages"])
     message = ChatMessageSchema().dump({"role": "assistant", "content": response})
     choice = ChatCompletionChoiceSchema().dump({"index": 0, "message": message, "finish_reason": "stop"})
     return ChatCompletionSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]})  # noqa
 
 
 if __name__ == "__main__":
-    my_app = create_app()  # noqa
+    my_app, _ = init_app()  # noqa
     my_app.run(host="0.0.0.0", port=8262, debug=False)
