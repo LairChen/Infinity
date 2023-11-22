@@ -1,22 +1,26 @@
 from json import dumps
+# 使用marshmallow作序列化和参数校验
+# blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
+from logging import INFO, FileHandler, basicConfig, info
 from os import system, getenv
 from time import time
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 from uuid import uuid4
 
 import gradio as gr
 import torch
 from fastapi import FastAPI
 from flasgger import Schema, fields
-from flask import Flask, Blueprint, Response, current_app, request, stream_with_context
-from flask_cors import CORS
+from flask import request, stream_with_context
 from marshmallow import validate
 from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer
 from transformers.generation.utils import GenerationConfig
 
-# 使用marshmallow作序列化和参数校验
-# blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
+basicConfig(level=INFO,  # noqa
+            format="%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s",  # noqa
+            datefmt="%Y-%m-%d %H:%M:%S",
+            handlers=[FileHandler(filename="/result/running.log", mode="w", encoding="utf-8")])
 
 
 class ChatMessageSchema(Schema):
@@ -115,9 +119,12 @@ def init_model():
 #
 #     return app, blueprint
 
-
+info(1111)
 init_env()
+info(2222)
 my_model, my_tokenizer = init_model()
+
+info(3333)
 
 
 def sse(line: Union[str, Dict]) -> str:
@@ -163,12 +170,15 @@ def create_chat_completion():
 if __name__ == "__main__":
     # my_app, _ = init_app()  # noqa
     # my_app.run(host="0.0.0.0", port=8262, debug=False)
-
+    info(4444)
     app = FastAPI()
+    info(555)
     demo = gr.Interface(
         fn=create_chat_completion,
         inputs=gr.components.Textbox(label="Inputs"),
         outputs=gr.components.Textbox(label="Outputs"),
         allow_flagging="never"
     )
+    info(666)
     app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+    info(777)
