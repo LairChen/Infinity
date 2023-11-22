@@ -1,5 +1,4 @@
 from json import dumps
-from logging import INFO, FileHandler, basicConfig, info
 from os import system, getenv
 from time import time
 from typing import Dict, Union
@@ -9,16 +8,10 @@ import gradio as gr
 import torch
 from fastapi import FastAPI
 from flasgger import Schema, fields
-from flask import request, stream_with_context
 from marshmallow import validate
 from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer
 from transformers.generation.utils import GenerationConfig
-
-basicConfig(level=INFO,  # noqa
-            format="%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s",  # noqa
-            datefmt="%Y-%m-%d %H:%M:%S",
-            handlers=[FileHandler(filename="/result/running.log", mode="w", encoding="utf-8")])
 
 
 # 使用marshmallow作序列化和参数校验
@@ -53,20 +46,20 @@ class ChatCompletionChunkChoiceSchema(Schema):
         metadata={"example": "stop"})
 
 
-class ChatCompletionChunkSchema(Schema):
-    id = fields.Str(dump_default=lambda: uuid4().hex)
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
-    choices = fields.List(fields.Nested(nested=ChatCompletionChunkChoiceSchema))  # noqa
-    object = fields.Constant(constant="chat.completion.chunk")
-    created = fields.Int(dump_default=lambda: int(time()))
-
-
 class ChatCompletionChoiceSchema(Schema):
     index = fields.Int()
     message = fields.Nested(nested=ChatMessageSchema)  # noqa
     finish_reason = fields.Str(
         validate=validate.OneOf(choices=["stop", "length", "content_filter", "function_call"]),  # noqa
         metadata={"example": "stop"})
+
+
+class ChatCompletionChunkSchema(Schema):
+    id = fields.Str(dump_default=lambda: uuid4().hex)
+    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
+    choices = fields.List(fields.Nested(nested=ChatCompletionChunkChoiceSchema))  # noqa
+    object = fields.Constant(constant="chat.completion.chunk")
+    created = fields.Int(dump_default=lambda: int(time()))
 
 
 class ChatCompletionSchema(Schema):
@@ -119,12 +112,8 @@ def init_model():
 #
 #     return app, blueprint
 
-info(1111)
 # init_env()
-info(2222)
 # my_model, my_tokenizer = init_model()
-
-info(3333)
 
 
 def sse(line: Union[str, Dict]) -> str:
@@ -171,15 +160,11 @@ def create_chat_completion():
 if __name__ == "__main__":
     # my_app, _ = init_app()  # noqa
     # my_app.run(host="0.0.0.0", port=8262, debug=False)
-    info(4444)
     app = FastAPI()
-    info(555)
     demo = gr.Interface(
         fn=create_chat_completion,
         inputs=gr.components.Textbox(label="Inputs"),
         outputs=gr.components.Textbox(label="Outputs"),
         allow_flagging="never"
     )
-    info(666)
-    app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
-    info(777)
+    app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
