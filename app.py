@@ -1,4 +1,5 @@
 from os import system, getenv
+from typing import List, Tuple
 
 import gradio as gr
 import torch
@@ -59,12 +60,12 @@ def init_model():
 #     yield sse(line="[DONE]")
 
 
-def chat_with_model(content: str) -> str:
+def chat_with_model(content: str) -> List[Tuple[str]]:
     """Chat接口"""
     result = my_model.chat(my_tokenizer, [{"role": "user", "content": content}])
     if torch.backends.mps.is_available():  # noqa
         torch.mps.empty_cache()  # noqa
-    return result
+    return [(content, result)]
     # chat_dict = CreateChatCompletionSchema().load(request.json)
     # # if chat_dict["stream"]:
     # #     # 切换到流式
@@ -79,10 +80,29 @@ def chat_with_model(content: str) -> str:
 init_env()
 my_model, my_tokenizer = init_model()
 app = FastAPI()
-demo = gr.Interface(
-    fn=chat_with_model,
-    inputs=gr.components.Textbox(label="请您提问"),
-    outputs=gr.components.Textbox(label="模型回答"),
-    allow_flagging="never"
-)
+
+
+def reset_user_input():
+    return gr.update(value="")
+
+
+with gr.Blocks() as demo:
+    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/infinity.png' "
+                      "style='height: 100px'/><p>")
+    gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
+    gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
+    gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity-llm'>项目地址</a> 🔥")
+
+    chatbot = gr.Chatbot(label="Infinity Model", elem_classes="control-height")  # noqa
+    query = gr.Textbox(lines=2, label="Input")
+    task_history = gr.State([])
+
+    with gr.Row():
+        submit_btn = gr.Button("Submit 🚀")
+
+    submit_btn.click(chat_with_model, [query, chatbot, task_history], [chatbot])
+    submit_btn.click(reset_user_input, [], [query])
+
+    gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
+                      "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
 app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
