@@ -60,7 +60,7 @@ def init_model():
 #     yield sse(line="[DONE]")
 
 
-def chat_with_model(content: str) -> List[Tuple[str]]:
+def chat_with_model(content: str, c, h) -> List[Tuple[str, str]]:
     """Chat接口"""
     result = my_model.chat(my_tokenizer, [{"role": "user", "content": content}])
     if torch.backends.mps.is_available():  # noqa
