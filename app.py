@@ -1,80 +1,16 @@
-from json import dumps
 from os import system, getenv
-from time import time
-from typing import Dict, Union
-from uuid import uuid4
 
 import gradio as gr
 import torch
 from fastapi import FastAPI
-from flasgger import Schema, fields
-from marshmallow import validate
 from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer
 from transformers.generation.utils import GenerationConfig
 
 
-# 使用marshmallow作序列化和参数校验
-# blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")  # 声明蓝图
-class ChatDeltaSchema(Schema):
-    role = fields.Str()
-    content = fields.Str()
-
-
-class ChatMessageSchema(Schema):
-    role = fields.Str(required=True)
-    content = fields.Str(required=True)
-
-
-class CreateChatCompletionSchema(Schema):
-    model = fields.Str(load_default="baichuan2-7b-chat")  # noqa
-    messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
-    max_tokens = fields.Int(load_default=None)
-    n = fields.Int(load_default=1)
-    temperature = fields.Float(load_default=1.0)
-    top_p = fields.Float(load_default=1.0)
-    frequency_penalty = fields.Float(load_default=0.0)
-    presence_penalty = fields.Float(load_default=0.0)
-    stream = fields.Bool(load_default=False)
-
-
-class ChatCompletionChunkChoiceSchema(Schema):
-    index = fields.Int()
-    delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
-    finish_reason = fields.Str(
-        validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]),  # noqa
-        metadata={"example": "stop"})
-
-
-class ChatCompletionChoiceSchema(Schema):
-    index = fields.Int()
-    message = fields.Nested(nested=ChatMessageSchema)  # noqa
-    finish_reason = fields.Str(
-        validate=validate.OneOf(choices=["stop", "length", "content_filter", "function_call"]),  # noqa
-        metadata={"example": "stop"})
-
-
-class ChatCompletionChunkSchema(Schema):
-    id = fields.Str(dump_default=lambda: uuid4().hex)
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
-    choices = fields.List(fields.Nested(nested=ChatCompletionChunkChoiceSchema))  # noqa
-    object = fields.Constant(constant="chat.completion.chunk")
-    created = fields.Int(dump_default=lambda: int(time()))
-
-
-class ChatCompletionSchema(Schema):
-    id = fields.Str(dump_default=lambda: uuid4().hex)
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
-    choices = fields.List(fields.Nested(nested=ChatCompletionChoiceSchema))  # noqa
-    object = fields.Constant(constant="chat.completion")
-    created = fields.Int(dump_default=lambda: int(time()))
-
-
 def init_env() -> None:
     system("mkdir /tmp/dataset")
-    system("unzip /dataset/Baichuan2-7B-Chat.zip -d /tmp/dataset")
-    # system("chmod +x frpc/frpc")  # noqa
-    # system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    system("unzip /pretrainmodel/Baichuan2-7B-Chat.zip -d /tmp/dataset")
     return
 
 
@@ -96,29 +32,9 @@ def init_model():
     return model, tokenizer
 
 
-# def init_app() -> Tuple[Flask, Blueprint]:
-#     """创建接口服务"""
-#     app = Flask(__name__)  # 声明主服务
-#     CORS(app=app)  # 允许跨域
-#
-#     app.register_blueprint(blueprint=blueprint)  # 注册蓝图
-#
-#     @app.after_request
-#     def after_request(resp: Response) -> Response:
-#         """请求后处理"""
-#         if torch.backends.mps.is_available():  # noqa
-#             torch.mps.empty_cache()  # noqa
-#         return resp
-#
-#     return app, blueprint
-
-init_env()
-my_model, my_tokenizer = init_model()
-
-
-def sse(line: Union[str, Dict]) -> str:
-    """Server Sent Events for stream"""
-    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+# def sse(line: Union[str, Dict]) -> str:
+#     """Server Sent Events for stream"""
+#     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
 # @stream_with_context
@@ -143,10 +59,12 @@ def sse(line: Union[str, Dict]) -> str:
 #     yield sse(line="[DONE]")
 
 
-# @blueprint.route("/completions", methods=["POST"])
-def create_chat_completion(x):
+def chat_with_model(content: str) -> str:
     """Chat接口"""
-    return my_model.chat(my_tokenizer, [{'content': x, 'role': 'user'}])
+    result = my_model.chat(my_tokenizer, [{"role": "user", "content": content}])
+    if torch.backends.mps.is_available():  # noqa
+        torch.mps.empty_cache()  # noqa
+    return result
     # chat_dict = CreateChatCompletionSchema().load(request.json)
     # # if chat_dict["stream"]:
     # #     # 切换到流式
@@ -157,13 +75,14 @@ def create_chat_completion(x):
     # return ChatCompletionSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]})  # noqa
 
 
-# my_app, _ = init_app()  # noqa
-# my_app.run(host="0.0.0.0", port=8262, debug=False)
+# AI协作平台自有FastAPI服务，这里模块式运行Gradio服务并挂载，故不适用main空间执行
+init_env()
+my_model, my_tokenizer = init_model()
 app = FastAPI()
 demo = gr.Interface(
-    fn=create_chat_completion,
-    inputs=gr.components.Textbox(label="Inputs"),
-    outputs=gr.components.Textbox(label="Outputs"),
+    fn=chat_with_model,
+    inputs=gr.components.Textbox(label="请您提问"),
+    outputs=gr.components.Textbox(label="模型回答"),
     allow_flagging="never"
 )
-app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
