@@ -8,14 +8,15 @@ parser.add_argument("--model", "-m", help="base model name")
 args = parser.parse_args()
 model_name = args.model
 
+cmd_cp = f"cp {data_path}/{model_name}.zip {tune_path}"
 cmd_unzip = f"unzip {data_path}/{model_name}.zip -d {data_path}"  # noqa
-cmd_train = "deepspeed --hostfile='' train.py " \
+cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--report_to none " \
             f"--model_name_or_path {data_path}/{model_name} " \
             "--data_path data/train.json " \
             f"--output_dir {tune_path} " \
             "--model_max_length 1024 " \
-            "--num_train_epochs 30 " \
+            "--num_train_epochs 20 " \
             "--per_device_train_batch_size 1 " \
             "--save_strategy epoch " \
             "--save_total_limit 1 " \
@@ -34,11 +35,12 @@ cmd_train = "deepspeed --hostfile='' train.py " \
             "--bf16 True " \
             "--tf32 False " \
             "--use_lora True"
-cmd_predict = "python predict.py " \
+cmd_predict = "python core/predict.py " \
               f"--base {data_path}/{model_name} " \
               f"--output {tune_path}"
 
 if __name__ == "__main__":
+    system(cmd_cp)  # 预训练模型拷贝
     system(cmd_unzip)  # 预训练模型解压缩
     system(cmd_train)  # 模型微调
     system(cmd_predict)  # 模型预测
