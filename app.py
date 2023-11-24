@@ -4,9 +4,24 @@ from typing import List, Tuple, Dict
 import gradio as gr
 import torch
 from fastapi import FastAPI
+from mdtex2html import convert
 from peft import AutoPeftModelForCausalLM, PeftModelForCausalLM
 from transformers import AutoTokenizer, PreTrainedTokenizer
 from transformers.generation.utils import GenerationConfig
+
+
+def postprocess(self, y):
+    if y is None:
+        return []
+    for i, (message, response) in enumerate(y):
+        y[i] = (
+            None if message is None else convert(message),
+            None if response is None else convert(response),
+        )
+    return y
+
+
+gr.Chatbot.postprocess = postprocess
 
 
 def init_env() -> None:
@@ -37,14 +52,10 @@ def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
 
 def chat_with_model(history: List[str], content: str):  # noqa
     """模型流式输出"""
-    # for response, _ in my_model.stream_chat(my_tokenizer, content, []):
+    for response, _ in my_model.stream_chat(my_tokenizer, content, []):
         # if torch.backends.mps.is_available():  # noqa
         #     torch.mps.empty_cache()  # noqa
-        # yield [(content, response)]
-    ans = ""
-    for i in range(20):
-        ans += str(i)
-        yield [(content, ans)]
+        yield [(content, response)]
 
 
 def reset_user_input() -> Dict:
