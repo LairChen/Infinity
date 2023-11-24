@@ -37,9 +37,9 @@ def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
 
 def chat_with_model(history: List[str], content: str):  # noqa
     """模型流式输出"""
-    for response, _ in my_model.stream_chat(my_tokenizer, [{"role": "user", "content": content}], []):
-        if torch.backends.mps.is_available():  # noqa
-            torch.mps.empty_cache()  # noqa
+    for response, _ in my_model.stream_chat(my_tokenizer, content, []):
+        # if torch.backends.mps.is_available():  # noqa
+        #     torch.mps.empty_cache()  # noqa
         yield [(content, response)]
 
 
