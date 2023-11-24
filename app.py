@@ -4,24 +4,9 @@ from typing import List, Tuple, Dict
 import gradio as gr
 import torch
 from fastapi import FastAPI
-from mdtex2html import convert
 from peft import AutoPeftModelForCausalLM, PeftModelForCausalLM
 from transformers import AutoTokenizer, PreTrainedTokenizer
 from transformers.generation.utils import GenerationConfig
-
-
-def postprocess(self, y):
-    if y is None:
-        return []
-    for i, (message, response) in enumerate(y):
-        y[i] = (
-            None if message is None else convert(message),
-            None if response is None else convert(response),
-        )
-    return y
-
-
-gr.Chatbot.postprocess = postprocess
 
 
 def init_env() -> None:
@@ -77,10 +62,10 @@ with gr.Blocks(title="Infinity Model") as demo:
     textbox = gr.Textbox(lines=2, label="Input")
     with gr.Row():
         submit_btn = gr.Button("👉 Submit 👈")
-    submit_btn.click(chat_with_model, [chatbot, textbox], [chatbot])
-    submit_btn.click(reset_user_input, [], [textbox])
     history = gr.State([])
     past_key_values = gr.State(None)
+    submit_btn.click(chat_with_model, [chatbot, textbox], [chatbot])
+    submit_btn.click(reset_user_input, [], [textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
 demo.queue()
