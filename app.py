@@ -79,6 +79,8 @@ with gr.Blocks(title="Infinity Model") as demo:
         submit_btn = gr.Button("👉 Submit 👈")
     submit_btn.click(chat_with_model, [chatbot, textbox], [chatbot])
     submit_btn.click(reset_user_input, [], [textbox])
+    history = gr.State([])
+    past_key_values = gr.State(None)
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
 demo.queue()
