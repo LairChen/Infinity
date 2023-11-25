@@ -4,7 +4,12 @@
 
 Infinity has contributed a platform to integrate the generation capability of large language models with our real-world business data, including finance, taxation and customer service, etc.
 
+With Infinity, you can train models to connect to your downstream jobs, and provide corresponding service.
+
 #### Supported Models
+
+* Baichuan2-7B-Chat
+* Baichuan2-13B-Chat
 
 #### Work Station
 
