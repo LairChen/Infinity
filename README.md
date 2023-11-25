@@ -1,3 +1,3 @@
-# Infinity-llm
+![](https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/infinity.png)
 
-无穷大模型
+# Infinity-llm
