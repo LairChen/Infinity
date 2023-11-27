@@ -53,7 +53,7 @@ init_env()
 my_model, my_tokenizer = init_model()
 app = FastAPI()
 with gr.Blocks(title="Infinity Model") as demo:
-    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/infinity.png' "
+    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/Infinity.png' "
                       "style='height: 100px'/><p>")
     gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
     gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
