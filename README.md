@@ -1,4 +1,4 @@
-![](https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/infinity.png)
+![](https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/Infinity.png)
 
 # Infinity
 
