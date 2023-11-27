@@ -35,8 +35,8 @@ def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
     return model, tokenizer
 
 
-def chat_with_model(history: List[str], content: str):  # noqa
-    """模型流式输出"""
+def chat_with_model(history: List[str], content: str) -> List[Tuple[str, str]]:  # noqa
+    """模型回答并更新聊天窗口"""
     response = my_model.chat(my_tokenizer, [{"role": "user", "content": content}])
     if torch.backends.mps.is_available():  # noqa
         torch.mps.empty_cache()  # noqa
@@ -57,13 +57,13 @@ with gr.Blocks(title="Infinity Model") as demo:
                       "style='height: 100px'/><p>")
     gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
     gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
-    gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity-llm'>项目地址</a> 🔥")
-    chatbot = gr.Chatbot(label="Infinity Model", elem_classes="control-height")  # noqa
-    textbox = gr.Textbox(lines=2, label="Input")
+    gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
+    chatbot = gr.Chatbot(label="Infinity Model")  # noqa
+    textbox = gr.Textbox(label="Input", lines=2)
     with gr.Row():
-        submit_btn = gr.Button("👉 Submit 👈")
-    submit_btn.click(chat_with_model, [chatbot, textbox], [chatbot])
-    submit_btn.click(reset_user_input, [], [textbox])
+        button = gr.Button("👉 Submit 👈")
+    button.click(chat_with_model, [chatbot, textbox], [chatbot])
+    button.click(reset_user_input, [], [textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
 app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
