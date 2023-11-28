@@ -19,7 +19,7 @@ cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--num_train_epochs 15 " \
             "--per_device_train_batch_size 2 " \
             "--save_strategy steps " \
-            "--save_steps 37605" \
+            "--save_steps 37605 " \
             "--save_total_limit 1 " \
             "--lr_scheduler_type constant " \
             "--learning_rate 2e-5 " \
