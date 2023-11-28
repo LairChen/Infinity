@@ -53,7 +53,7 @@ init_env()
 my_model, my_tokenizer = init_model()
 app = FastAPI()
 with gr.Blocks(title="Infinity Model") as demo:
-    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity-llm/raw/branch/master/Infinity.png' "
+    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
                       "style='height: 100px'/><p>")
     gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
     gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
@@ -62,8 +62,8 @@ with gr.Blocks(title="Infinity Model") as demo:
     textbox = gr.Textbox(label="Input", lines=2)
     with gr.Row():
         button = gr.Button("👉 Submit 👈")
-    button.click(chat_with_model, [chatbot, textbox], [chatbot])
-    button.click(reset_user_input, [], [textbox])
+    button.click(fn=chat_with_model, inputs=[chatbot, textbox], outputs=[chatbot])
+    button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-app = gr.mount_gradio_app(app, demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
