@@ -12,7 +12,7 @@ from transformers.generation.utils import GenerationConfig
 def init_env() -> None:
     """环境初始化"""
     system("mkdir /tmp/dataset")
-    system("unzip /pretrainmodel/Baichuan2-7B-Chat.zip -d /tmp/dataset")
+    system("unzip /pretrainmodel/Baichuan2-13B-Chat.zip -d /tmp/dataset")
     return
 
 
@@ -25,10 +25,10 @@ def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
         trust_remote_code=True
     )
     model.generation_config = GenerationConfig.from_pretrained(
-        pretrained_model_name="/tmp/dataset/Baichuan2-7B-Chat"
+        pretrained_model_name="/tmp/dataset/Baichuan2-13B-Chat"
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path="/tmp/dataset/Baichuan2-7B-Chat",
+        pretrained_model_name_or_path="/tmp/dataset/Baichuan2-13B-Chat",
         use_fast=False,
         trust_remote_code=True
     )
