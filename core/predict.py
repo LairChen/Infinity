@@ -38,7 +38,7 @@ def predict() -> None:
     common = load(fp=open(file="data/predict.json", encoding="utf-8"))
     professional = load(fp=open(file="data/train.json", encoding="utf-8"))
     n = len(professional) - 1
-    with open(file="{}/prediction.txt".format(args.output), mode="w+", encoding="utf-8") as f:
+    with open(file="/tmp/output/prediction.txt", mode="w+", encoding="utf-8") as f:
         f.write("===================================通识问答===================================")
         f.write("\n\n")
         for question in common:
