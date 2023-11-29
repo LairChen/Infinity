@@ -53,7 +53,7 @@ def merge_model_and_tokenizer() -> None:
         trust_remote_code=True
     ).eval()
     merged_model = model.merge_and_unload()
-    merged_model.save_pretrained(save_directory="tune", safe_serialization=True)
+    merged_model.save_pretrained(save_directory="/tmp/output", safe_serialization=True)
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path="/tmp/dataset/Baichuan2-13B-Chat",
         use_fast=False,
