@@ -20,7 +20,7 @@ cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--data_path data/train.json " \
             "--output_dir /tmp/dataset/tune " \
             "--model_max_length 1024 " \
-            "--num_train_epochs 16 " \
+            "--num_train_epochs 20 " \
             "--per_device_train_batch_size 1 " \
             "--save_strategy steps " \
             "--save_steps 80416 " \
