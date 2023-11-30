@@ -1,22 +1,13 @@
-from os import system, getenv
+from os import getenv
 from typing import List, Tuple, Dict
 
 import gradio as gr
 import torch
 from fastapi import FastAPI
-from peft import AutoPeftModelForCausalLM, PeftModelForCausalLM
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
-from transformers.generation.utils import GenerationConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 
 
-def init_env() -> None:
-    """环境初始化"""
-    system("mkdir /tmp/dataset")
-    system("unzip /pretrainmodel/Baichuan2-13B-Chat.zip -d /tmp/dataset")
-    return
-
-
-def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
+def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     """模型和词表初始化"""
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path="/pretrainmodel",
@@ -24,9 +15,6 @@ def init_model() -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
         device_map="auto",
         trust_remote_code=True
     ).eval()
-    # model.generation_config = GenerationConfig.from_pretrained(
-    #     pretrained_model_name="/tmp/dataset/Baichuan2-13B-Chat"
-    # )
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path="/pretrainmodel",
         use_fast=False,
@@ -49,8 +37,7 @@ def reset_user_input() -> Dict:
 
 
 # AI协作平台自有FastAPI服务，这里模块式运行Gradio服务并挂载，故不适用main空间执行
-# init_env()
-my_model, my_tokenizer = init_model()
+my_model, my_tokenizer = init_model_and_tokenizer()
 app = FastAPI()
 with gr.Blocks(title="Infinity Model") as demo:
     gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
