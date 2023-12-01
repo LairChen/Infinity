@@ -72,7 +72,7 @@ cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--use_lora True"
 cmd_predict = "python core/predict.py " \
               f"--base {path_train_pretrain}/{get_model_name()} " \
-              f"--output {path_eval_finetune}"
+              "--output /tmp/dataset/tune"
 
 if __name__ == "__main__":
     system(cmd_mkdir)  # 创建模型微调的临时路径
