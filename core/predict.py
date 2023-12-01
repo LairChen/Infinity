@@ -4,41 +4,32 @@ from random import randint
 from typing import Tuple
 
 import torch
-from peft import AutoPeftModelForCausalLM, PeftModelForCausalLM
-from transformers import AutoTokenizer, PreTrainedTokenizer
-from transformers.generation.utils import GenerationConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 
 
-def init_model(base: str, output: str) -> Tuple[PeftModelForCausalLM, PreTrainedTokenizer]:
-    """加载模型和词表"""
-    model = AutoPeftModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path=output,
+def init_model_and_tokenizer(path: str) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
+    """初始化模型和词表"""
+    model = AutoModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path=path,
         torch_dtype=torch.float16,
         device_map="auto",
         trust_remote_code=True
-    )
-    model.generation_config = GenerationConfig.from_pretrained(
-        pretrained_model_name=base
-    )
+    ).eval()
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=base,
+        pretrained_model_name_or_path=path,
         use_fast=False,
         trust_remote_code=True
     )
     return model, tokenizer
 
 
-def predict() -> None:
+def predict(path: str) -> None:
     """预测主方法"""
-    parser = ArgumentParser()
-    parser.add_argument("--base", "-b", help="absolute path for base model")
-    parser.add_argument("--output", "-o", help="absolute path for fine-tuned model")
-    args = parser.parse_args()
-    model, tokenizer = init_model(base=args.base, output=args.output)
+    model, tokenizer = init_model_and_tokenizer(path=path)
     common = load(fp=open(file="data/predict.json", encoding="utf-8"))
     professional = load(fp=open(file="data/train.json", encoding="utf-8"))
     n = len(professional) - 1
-    with open(file="/tmp/output/prediction.txt", mode="w+", encoding="utf-8") as f:
+    with open(file="{}/prediction.txt".format(path), mode="w+", encoding="utf-8") as f:
         f.write("===================================通识问答===================================")
         f.write("\n\n")
         for question in common:
@@ -65,4 +56,7 @@ def predict() -> None:
 
 
 if __name__ == "__main__":
-    predict()
+    parser = ArgumentParser()
+    parser.add_argument("--model", "-m", help="path for fine-tuned model")
+    args = parser.parse_args()
+    predict(path=args.model)
