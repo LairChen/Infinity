@@ -1,5 +1,5 @@
 from json import load
-from os import system, listdir
+from os import system, listdir, mkdir
 from re import match
 
 import torch
@@ -43,7 +43,6 @@ def merge_model_and_tokenizer() -> None:
     return
 
 
-cmd_mkdir = f"mkdir {path_train_pretrain}/tune"
 cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--report_to none " \
             f"--model_name_or_path {path_train_pretrain}/{get_model_name()} " \
@@ -70,12 +69,10 @@ cmd_train = "deepspeed --hostfile='' core/train.py " \
             "--bf16 True " \
             "--tf32 False " \
             "--use_lora True"
-cmd_predict = "python core/predict.py " \
-              f"--base {path_train_pretrain}/{get_model_name()} " \
-              "--output /tmp/dataset/tune"
+cmd_predict = f"python core/predict.py --model {path_train_finetune}"
 
 if __name__ == "__main__":
-    system(cmd_mkdir)  # 创建模型微调的临时路径
+    mkdir(f"{path_train_pretrain}/tune")  # 创建模型微调的临时路径
     system(cmd_train)  # 模型微调
-    system(cmd_predict)  # 模型预测
     merge_model_and_tokenizer()  # 合并微调参数和词表
+    system(cmd_predict)  # 模型预测
