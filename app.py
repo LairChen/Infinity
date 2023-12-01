@@ -53,8 +53,4 @@ with gr.Blocks(title="Infinity Model") as demo:
     button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-import os
-os.system("chmod +x frpc/frpc")
-os.system("./frpc/frpc -c frpc/frpc.ini")
-demo.launch()
-# app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
