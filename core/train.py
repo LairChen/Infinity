@@ -8,9 +8,6 @@ from torch.utils.data import Dataset
 from transformers import TrainingArguments, HfArgumentParser, AutoModelForCausalLM, AutoTokenizer, Trainer, PreTrainedTokenizer
 
 
-# 仅适用于百川大语言模型进行微调
-
-
 @dataclass
 class ModelArguments(object):
     """模型参数"""
