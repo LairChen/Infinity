@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 from json import dumps
 from random import uniform
 from time import time, sleep
@@ -11,11 +10,8 @@ from flask_cors import CORS
 from marshmallow import validate
 from requests import post
 
-cfg = ConfigParser()
-cfg.read(filenames="conf/config.ini", encoding="utf-8")
-appHost = cfg.get(section="app", option="app.host")
-appPort = cfg.getint(section="app", option="app.port")
-baseURL = cfg.get(section="app", option="app.gradio.addr")  # noqa
+from utils import *
+
 blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")
 
 
@@ -93,7 +89,7 @@ def create_app() -> Flask:
 
 def get_answer(question: List[Dict[str, str]]) -> str:
     """根据问题文本从接口获取模型回答"""
-    url = "{}/run/predict".format(baseURL)
+    url = "{}/run/predict".format(appAddr)
     req = {"fn_index": 0, "data": [[], question[-1]["content"]]}
     resp = post(url=url, data=dumps(req), verify=False).json()
     return resp["data"][0][0][1]
