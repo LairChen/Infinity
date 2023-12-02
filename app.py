@@ -8,7 +8,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, P
 
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
-    """模型和词表初始化"""
+    """初始化模型和词表"""
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path="/pretrainmodel",
         torch_dtype=torch.float16,
