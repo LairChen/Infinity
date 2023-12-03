@@ -1,4 +1,4 @@
-from os import system
+from os import system, getenv
 from threading import Thread
 
 import gradio as gr
