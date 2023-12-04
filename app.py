@@ -74,6 +74,26 @@ def create_api() -> Flask:
     return my_api
 
 
+def create_demo() -> gr.Blocks:
+    """创建页面服务"""
+    with gr.Blocks(title="Infinity Model") as my_demo:
+        gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
+                          "style='height: 100px'/><p>")
+        gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
+        gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
+        gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
+        chatbot = gr.Chatbot(label="Infinity Model")  # noqa
+        textbox = gr.Textbox(label="Input", lines=2)
+        with gr.Row():
+            button = gr.Button("👉 Submit 👈")
+        button.click(fn=chat_with_model, inputs=[chatbot, textbox], outputs=[chatbot])
+        button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
+        gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
+                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
+    my_demo.queue()
+    return my_demo
+
+
 def sse(line: Union[str, Dict]) -> str:
     """Server Sent Events for stream"""
     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
@@ -162,21 +182,7 @@ api = create_api()  # noqa
 Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
 
 # 页面服务
-with gr.Blocks(title="Infinity Model") as demo:
-    gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
-                      "style='height: 100px'/><p>")
-    gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
-    gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
-    gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
-    chatbot = gr.Chatbot(label="Infinity Model")  # noqa
-    textbox = gr.Textbox(label="Input", lines=2)
-    with gr.Row():
-        button = gr.Button("👉 Submit 👈")
-    button.click(fn=chat_with_model, inputs=[chatbot, textbox], outputs=[chatbot])
-    button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
-    gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
-                      "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-demo.queue()
+demo = create_demo()
 # 正式环境启动方法
 # demo.launch()
 # AI协作平台启动方法
