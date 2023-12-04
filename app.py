@@ -81,7 +81,7 @@ def sse(line: Union[str, Dict]) -> str:
 
 @stream_with_context
 def stream_chat_generate(messages: List[Dict[str, str]]):
-    """Chat流式"""
+    """流式输出模型回答"""
     index = 0
     position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
@@ -126,12 +126,19 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     return model, tokenizer
 
 
+def init_frp() -> None:
+    """初始化frp客户端"""
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    return
+
+
 def chat_with_model(history: List[str], content: str) -> List[Tuple[str, str]]:  # noqa
     """模型回答并更新聊天窗口"""
-    response = my_model.chat(my_tokenizer, [{"role": "user", "content": content}])
-    if torch.backends.mps.is_available():  # noqa
-        torch.mps.empty_cache()  # noqa
-    return [(content, response)]
+    for answer in my_model.chat(my_tokenizer, [{"role": "user", "content": content}], stream=True):
+        if torch.backends.mps.is_available():  # noqa
+            torch.mps.empty_cache()  # noqa
+        yield [(content, answer)]
 
 
 def reset_user_input() -> Dict:
@@ -144,9 +151,8 @@ def reset_user_input() -> Dict:
 # 加载模型
 my_model, my_tokenizer = init_model_and_tokenizer()
 
-# 启动frp客户端
-system("chmod +x frpc/frpc")  # noqa
-system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+# 加载frp
+init_frp()
 
 # 接口服务
 api = create_api()  # noqa
@@ -170,7 +176,7 @@ with gr.Blocks(title="Infinity Model") as demo:
     button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-# demo.queue()
+demo.queue()
 # 正式环境启动方法
 # demo.launch()
 # AI协作平台启动方法
