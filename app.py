@@ -10,10 +10,9 @@ import gradio as gr
 import torch
 from fastapi import FastAPI
 from flasgger import Schema, fields
-from flask import Flask, Blueprint, current_app, request, stream_with_context
+from flask import Flask, Blueprint, Response, current_app, request, stream_with_context
 from flask_cors import CORS
 from marshmallow import validate
-from requests import post
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 
 from utils import *
@@ -37,9 +36,9 @@ class ChatDeltaSchema(Schema):
 
 class CreateChatCompletionSchema(Schema):
     """Chat接口请求数据结构解析"""
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"}, required=True)  # noqa
+    model = fields.Str(required=True)  # noqa
     messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
-    stream = fields.Bool(load_default=False)
+    stream = fields.Bool(load_default=True)
     max_tokens = fields.Int(load_default=None)
     n = fields.Int(load_default=1)
     seed = fields.Int(load_default=1)
@@ -47,15 +46,6 @@ class CreateChatCompletionSchema(Schema):
     temperature = fields.Float(load_default=1.0)
     presence_penalty = fields.Float(load_default=0.0)
     frequency_penalty = fields.Float(load_default=0.0)
-
-
-class ChatCompletionChoiceSchema(Schema):
-    """Chat接口消息选择器"""
-    index = fields.Int()
-    message = fields.Nested(nested=ChatMessageSchema)  # noqa
-    finish_reason = fields.Str(
-        validate=validate.OneOf(choices=["stop", "length", "content_filter", "function_call"]),  # noqa
-        metadata={"example": "stop"})
 
 
 class ChatCompletionChunkChoiceSchema(Schema):
@@ -67,21 +57,12 @@ class ChatCompletionChunkChoiceSchema(Schema):
         metadata={"example": "stop"})
 
 
-class ChatCompletionSchema(Schema):
+class ChatCompletionChunkSchema(Schema):
     """Chat接口响应数据结构映射"""
     id = fields.Str(dump_default=lambda: uuid4().hex)
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
-    choices = fields.List(fields.Nested(nested=ChatCompletionChoiceSchema))  # noqa
     created = fields.Int(dump_default=lambda: int(time()))
-    object = fields.Constant(constant="chat.completion")
-
-
-class ChatCompletionChunkSchema(Schema):
-    """Chat流式响应数据结构映射"""
-    id = fields.Str(dump_default=lambda: uuid4().hex)
-    model = fields.Str(metadata={"example": "baichuan2-7b-chat"})  # noqa
+    model = fields.Str(required=True)  # noqa
     choices = fields.List(fields.Nested(nested=ChatCompletionChunkChoiceSchema))  # noqa
-    created = fields.Int(dump_default=lambda: int(time()))
     object = fields.Constant(constant="chat.completion.chunk")
 
 
@@ -91,14 +72,6 @@ def create_api() -> Flask:
     CORS(app=my_api)  # 允许跨域
     my_api.register_blueprint(blueprint=blueprint)  # 注册蓝图
     return my_api
-
-
-def get_answer(question: List[Dict[str, str]]) -> str:
-    """根据问题文本从接口获取模型回答"""
-    url = "{}/run/predict".format(appAddr)
-    req = {"fn_index": 0, "data": [[], question[-1]["content"]]}
-    resp = post(url=url, data=dumps(req), verify=False).json()
-    return resp["data"][0][0][1]
 
 
 def sse(line: Union[str, Dict]) -> str:
@@ -131,23 +104,22 @@ def stream_chat_generate(messages: List[Dict[str, str]]):
 
 
 @blueprint.route(rule="/completions", methods=["POST"])
-def create_chat_completion() -> str:
+def create_chat_completion() -> Response:
     """Chat接口"""
     chat_dict = CreateChatCompletionSchema().load(request.json)
-    # 切换到流式
     return current_app.response_class(response=stream_chat_generate(messages=chat_dict["messages"]), mimetype="text/event-stream")
 
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     """初始化模型和词表"""
     model = AutoModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path="/pretrainmodel",
+        pretrained_model_name_or_path=path_eval_finetune,
         torch_dtype=torch.float16,
         device_map="auto",
         trust_remote_code=True
     ).eval()
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path="/pretrainmodel",
+        pretrained_model_name_or_path=path_eval_finetune,
         use_fast=False,
         trust_remote_code=True
     )
