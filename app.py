@@ -1,5 +1,5 @@
 from json import dumps
-from os import getenv
+from os import getenv, system
 from random import uniform
 from threading import Thread
 from time import time, sleep
@@ -171,14 +171,22 @@ def reset_user_input() -> Dict:
 
 
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
+
+# 加载模型
 my_model, my_tokenizer = init_model_and_tokenizer()
 
+# 启动frp客户端
+system("chmod +x frpc/frpc")  # noqa
+system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+
+# 接口服务
 api = create_api()  # noqa
 # 正式环境启动方法
 # api.run(host=appHost, port=appPort, debug=False)
 # AI协作平台启动方法
 Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
 
+# 页面服务
 with gr.Blocks(title="Infinity Model") as demo:
     gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
                       "style='height: 100px'/><p>")
