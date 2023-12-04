@@ -1,8 +1,7 @@
 from json import dumps
 from os import getenv, system
-from random import uniform
 from threading import Thread
-from time import time, sleep
+from time import time
 from typing import Dict, List, Union
 from typing import Tuple
 from uuid import uuid4
@@ -111,18 +110,22 @@ def sse(line: Union[str, Dict]) -> str:
 def stream_chat_generate(messages: List[Dict[str, str]]):
     """Chat流式"""
     index = 0
+    position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatCompletionChunkChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
-    for answer in get_answer(question=messages):
-        # 模拟打字机输出效果
-        sleep(uniform(0, 0.2))
-        index += 1
-        delta = ChatDeltaSchema().dump({"content": answer})
+    for answer in my_model.chat(my_tokenizer, [{"role": "user", "content": messages[-1]["content"]}], stream=True):
+        content = answer[position:]
+        if torch.backends.mps.is_available():  # noqa
+            torch.mps.empty_cache()  # noqa
+        if not content:
+            continue
+        delta = ChatDeltaSchema().dump({"content": content})
         choice = ChatCompletionChunkChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
         yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
-    index += 1
-    choice = ChatCompletionChunkChoiceSchema().dump({"index": index, "delta": {}, "finish_reason": "stop"})
+        index += 1
+        position = len(answer)
+    choice = ChatCompletionChunkChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
     yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
     yield sse(line="[DONE]")
 
@@ -132,13 +135,7 @@ def create_chat_completion() -> str:
     """Chat接口"""
     chat_dict = CreateChatCompletionSchema().load(request.json)
     # 切换到流式
-    if chat_dict["stream"]:
-        return current_app.response_class(
-            response=stream_chat_generate(messages=chat_dict["messages"]), mimetype="text/event-stream")
-    answer = get_answer(question=chat_dict["messages"])
-    message = ChatMessageSchema().dump({"role": "assistant", "content": answer})
-    choice = ChatCompletionChoiceSchema().dump({"index": 0, "message": message, "finish_reason": "stop"})
-    return ChatCompletionSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]})  # noqa
+    return current_app.response_class(response=stream_chat_generate(messages=chat_dict["messages"]), mimetype="text/event-stream")
 
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
