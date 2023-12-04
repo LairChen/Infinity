@@ -193,7 +193,7 @@ with gr.Blocks(title="Infinity Model") as demo:
     button.click(fn=reset_user_input, inputs=[], outputs=[textbox])
     gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                       "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-demo.queue()
+# demo.queue()
 # 正式环境启动方法
 # demo.launch()
 # AI协作平台启动方法
