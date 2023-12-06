@@ -147,6 +147,8 @@ def chat_stream(chat_dict: Dict):
         yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
+        if position > llm["output_max_length"]:
+            break
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
     yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
     yield sse(line="[DONE]")
@@ -169,6 +171,8 @@ def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[s
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
         yield chatbot
+        if len(answer) > llm["output_max_length"]:
+            break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
 
