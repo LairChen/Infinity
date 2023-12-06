@@ -34,7 +34,7 @@ class ChatDeltaSchema(Schema):
     content = fields.Str()
 
 
-class ChatCompletionSchema(Schema):
+class ChatRequestSchema(Schema):
     """Chat接口请求数据结构解析"""
     model = fields.Str(required=True)  # noqa
     messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
@@ -48,7 +48,7 @@ class ChatCompletionSchema(Schema):
     frequency_penalty = fields.Float(load_default=0.0)
 
 
-class ChatCompletionChoiceSchema(Schema):
+class ChatChoiceSchema(Schema):
     """Chat流式消息选择器"""
     index = fields.Int(load_default=0)
     delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
@@ -57,12 +57,12 @@ class ChatCompletionChoiceSchema(Schema):
         metadata={"example": "stop"})
 
 
-class ChatCompletionChunkSchema(Schema):
+class ChatResponseSchema(Schema):
     """Chat接口响应数据结构映射"""
     id = fields.Str(dump_default=lambda: uuid4().hex)
     created = fields.Int(dump_default=lambda: int(time()))
     model = fields.Str(required=True)  # noqa
-    choices = fields.List(fields.Nested(nested=ChatCompletionChoiceSchema))  # noqa
+    choices = fields.List(fields.Nested(nested=ChatChoiceSchema))  # noqa
     object = fields.Constant(constant="chat.completion.chunk")
 
 
@@ -100,20 +100,25 @@ def init_api() -> Flask:
 def init_demo() -> gr.Blocks:
     """创建页面服务"""
     with gr.Blocks(title="Infinity Model") as my_demo:
+        # 布局区
         gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
-                            "style='height: 100px'/><p>")
+                          "style='height: 100px'/><p>")
         gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
         gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
         chatbot = gr.Chatbot(label="Infinity Model")  # noqa
         textbox = gr.Textbox(label="Input", lines=2)
+        history = gr.State(value=[])
         with gr.Row():
-            bnSubmit = gr.Button("👉 Submit 👈")
+            btnSubmit = gr.Button("Submit 🚀")
+            btnClear = gr.Button("Clear 🧹")
         gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
-                            "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-        bnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox], outputs=[chatbot])
-        bnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
-    # my_demo.queue()
+                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
+        # 功能区
+        btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
+        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
+    my_demo.queue()
     return my_demo
 
 
@@ -123,47 +128,64 @@ def sse(line: Union[str, Dict]) -> str:
 
 
 @stream_with_context
-def chat_stream(messages: List[Dict[str, str]]):
+def chat_stream(chat_dict: Dict):
     """流式输出模型回答"""
     index = 0
     position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
-    choice = ChatCompletionChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
-    yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
-    for answer in model.chat(tokenizer, [{"role": "user", "content": messages[-1]["content"]}], stream=True):
-        content = answer[position:]
+    choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
+    yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+    # 多轮对话，流式输出
+    for answer in model.chat(tokenizer, chat_dict["messages"], stream=True):
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
+        content = answer[position:]
         if not content:
             continue
         delta = ChatDeltaSchema().dump({"content": content})
-        choice = ChatCompletionChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
+        choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
+        yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
-    choice = ChatCompletionChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield sse(line=ChatCompletionChunkSchema().dump({"model": "baichuan2-7b-chat", "choices": [choice]}))  # noqa
+        if position > llm["output_max_length"]:
+            break
+    choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
+    yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
     yield sse(line="[DONE]")
 
 
 @blueprint.route(rule="/completions", methods=["POST"])
 def chat_completion() -> Response:
     """Chat接口"""
-    chat_dict = ChatCompletionSchema().load(request.json)
-    return current_app.response_class(response=chat_stream(messages=chat_dict["messages"]), mimetype="text/event-stream")
+    chat_dict = ChatRequestSchema().load(request.json)
+    return current_app.response_class(response=chat_stream(chat_dict=chat_dict), mimetype="text/event-stream")
 
 
-def chat_with_model(history: List[str], content: str) -> List[Tuple[str, str]]:  # noqa
+def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
     """模型回答并更新聊天窗口"""
-    for answer in model.chat(tokenizer, [{"role": "user", "content": content}], stream=True):
+    chatbot.append([textbox, ""])
+    history.append({"role": "user", "content": textbox})
+    # 多轮对话，流式输出
+    for answer in model.chat(tokenizer, history, stream=True):
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
-        yield [(content, answer)]
+        chatbot[-1][1] = answer
+        yield chatbot
+        if len(answer) > llm["output_max_length"]:
+            break
+    history.append({"role": "assistant", "content": chatbot[-1][1]})
 
 
 def clear_textbox() -> Dict:
     """清理用户输入空间"""
     return gr.update(value="")
+
+
+def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, str]]) -> List:  # noqa
+    """清理人机对话历史记录"""
+    chatbot.clear()
+    history.clear()
+    return chatbot
 
 
 # 加载模型
