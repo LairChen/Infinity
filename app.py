@@ -115,7 +115,7 @@ def init_demo() -> gr.Blocks:
         gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                           "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
         # 功能区
-        textbox.submit(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        # textbox.submit(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
         btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
