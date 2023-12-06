@@ -113,7 +113,7 @@ def init_demo() -> gr.Blocks:
                             "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
         bnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox], outputs=[chatbot])
         bnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
-    my_demo.queue()
+    # my_demo.queue()
     return my_demo
 
 
