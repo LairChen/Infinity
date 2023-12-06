@@ -117,8 +117,8 @@ def init_demo() -> gr.Blocks:
         # 功能区
         textbox.submit(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
-        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox], queue=False)
-        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot], queue=False)
+        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
+        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
     my_demo.queue()
     return my_demo
 
