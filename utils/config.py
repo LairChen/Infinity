@@ -13,5 +13,6 @@ path_eval_finetune = cfg.get(section="path", option="path.eval.finetune")  # noq
 llm = {
     "model_max_length": cfg.getint(section="model", option="model.max.length"),
     "num_train_epochs": cfg.getint(section="model", option="num.train.epochs"),
-    "per_device_train_batch_size": cfg.getint(section="model", option="per.device.train.batch.size")
+    "per_device_train_batch_size": cfg.getint(section="model", option="per.device.train.batch.size"),
+    "output_max_length": cfg.get(section="model", option="output.max.length")
 }
