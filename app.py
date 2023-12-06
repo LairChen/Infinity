@@ -172,8 +172,8 @@ def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[s
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
         yield chatbot
-        if len(answer) > llm["output_max_length"]:
-            break
+        # if len(answer) > llm["output_max_length"]:
+        #     break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
 
