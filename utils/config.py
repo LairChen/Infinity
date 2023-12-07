@@ -8,6 +8,7 @@ appPort = cfg.getint(section="app", option="app.port")
 
 path_train_pretrain = cfg.get(section="path", option="path.train.pretrain")  # noqa
 path_train_finetune = cfg.get(section="path", option="path.train.finetune")  # noqa
+path_eval_pretrain = cfg.get(section="path", option="path.eval.pretrain")  # noqa
 path_eval_finetune = cfg.get(section="path", option="path.eval.finetune")  # noqa
 
 llm = {
