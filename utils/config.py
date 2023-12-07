@@ -14,5 +14,13 @@ llm = {
     "model_max_length": cfg.getint(section="model", option="model.max.length"),
     "num_train_epochs": cfg.getint(section="model", option="num.train.epochs"),
     "per_device_train_batch_size": cfg.getint(section="model", option="per.device.train.batch.size"),
+    "lr_scheduler_type": cfg.get(section="model", option="lr.scheduler.type"),
+    "learning_rate": cfg.get(section="model", option="learning.rate"),
+    "adam_beta1": cfg.getfloat(section="model", option="adam.beta1"),
+    "adam_beta2": cfg.getfloat(section="model", option="adam.beta2"),
+    "adam_epsilon": cfg.get(section="model", option="adam.epsilon"),
+    "max_grad_norm": cfg.getfloat(section="model", option="max.grad.norm"),
+    "warmup_ratio": cfg.getfloat(section="model", option="warmup.ratio"),  # noqa
+    "weight_decay": cfg.get(section="model", option="weight.decay"),
     "output_max_length": cfg.getint(section="model", option="output.max.length")
 }
