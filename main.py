@@ -32,44 +32,46 @@ def merge_model_and_tokenizer() -> None:
         device_map="auto",
         trust_remote_code=True
     ).eval()
-    merged_model = model.merge_and_unload()
-    merged_model.save_pretrained(save_directory=path_train_finetune, safe_serialization=True)
+    model = model.merge_and_unload()
+    model.save_pretrained(save_directory=path_train_finetune, safe_serialization=True)
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=f"{path_train_pretrain}/{get_model_name()}",
         use_fast=False,
         trust_remote_code=True
     )
     tokenizer.save_pretrained(save_directory=path_train_finetune)
+    del model, tokenizer
     return
 
 
-cmd_train = "deepspeed --hostfile='' core/train.py " \
+cmd_train = "deepspeed core/train.py " \
             "--report_to none " \
-            f"--model_name_or_path {path_train_pretrain}/{get_model_name()} " \
             "--data_path data/train.json " \
+            f"--model_name_or_path {path_train_pretrain}/{get_model_name()} " \
             f"--output_dir {path_train_pretrain}/tune " \
-            f"--model_max_length {llm['size']} " \
-            f"--num_train_epochs {llm['epoch']} " \
-            f"--per_device_train_batch_size {llm['batch']} " \
-            "--save_strategy steps " \
-            f"--save_steps {get_data_num() * llm['epoch'] // llm['batch']} " \
             "--save_total_limit 1 " \
-            "--lr_scheduler_type constant " \
-            "--learning_rate 2e-5 " \
-            "--adam_beta1 0.9 " \
-            "--adam_beta2 0.98 " \
-            "--adam_epsilon 1e-8 " \
-            "--max_grad_norm 1.0 " \
-            "--warmup_ratio 0.0 " \
-            "--weight_decay 1e-4 " \
+            "--save_strategy steps " \
+            f"--save_steps {get_data_num() * llm['num_train_epochs'] // llm['per_device_train_batch_size']} " \
+            f"--model_max_length {llm['model_max_length']} " \
+            f"--num_train_epochs {llm['num_train_epochs']} " \
+            f"--per_device_train_batch_size {llm['per_device_train_batch_size']} " \
+            f"--lr_scheduler_type {llm['lr_scheduler_type']} " \
+            f"--learning_rate {llm['learning_rate']} " \
+            f"--adam_beta1 {llm['adam_beta1']} " \
+            f"--adam_beta2 {llm['adam_beta2']} " \
+            f"--adam_epsilon {llm['adam_epsilon']} " \
+            f"--max_grad_norm {llm['max_grad_norm']} " \
+            f"--warmup_ratio {llm['warmup_ratio']} " \
+            f"--weight_decay {llm['weight_decay']} " \
+            "--deepspeed data/deepspeed.json " \
             "--logging_steps 1 " \
             "--gradient_accumulation_steps 1 " \
             "--gradient_checkpointing True " \
-            "--deepspeed data/deepspeed.json " \
             "--bf16 True " \
             "--tf32 False " \
             "--use_lora True"
-cmd_predict = f"python core/predict.py --model {path_train_finetune}"
+cmd_predict = "python core/predict.py " \
+              f"--model {path_train_finetune}"
 
 if __name__ == "__main__":
     mkdir(f"{path_train_pretrain}/tune")  # 创建模型微调的临时路径
