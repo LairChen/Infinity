@@ -45,7 +45,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
 
 
 def init_embeddings_model():
-    """"""
+    """初始化嵌入模型"""
     my_model = SentenceTransformer(
         model_name_or_path="/dataset/moka-ai/m3e-large",
         device="cuda"  # noqa
@@ -159,13 +159,13 @@ class EmbeddingsUsageSchema(Schema):
 
 
 class EmbeddingsRequestSchema(Schema):
-    """"""
+    """Embeddings接口请求数据结构解析"""
     model = fields.Str(required=True)  # noqa
-    input: fields.List(fields.Nested(nested=fields.Str))  # noqa
+    input = fields.List(fields.Nested(nested=fields.Str))  # noqa
 
 
 class EmbeddingsResponseSchema(Schema):
-    """"""
+    """Embeddings接口响应数据结构映射"""
     data = fields.List(fields.Nested(nested=EmbeddingsDataSchema))  # noqa
     model = fields.Str(required=True)  # noqa
     usage = fields.Nested(nested=EmbeddingsUsageSchema)  # noqa
