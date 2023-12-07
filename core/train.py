@@ -46,13 +46,13 @@ class SupervisedDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Tensor]:
-        return self.preprocessing(example=self.data[idx])
+        return self.preprocessing(data=self.data[idx])
 
-    def preprocessing(self, example: Dict) -> Dict[str, Union[List[int], Tensor]]:  # noqa
+    def preprocessing(self, data: Dict) -> Dict[str, Union[List[int], Tensor]]:  # noqa
         """数据预处理"""
         input_ids = []
         labels = []
-        for message in example["conversations"]:
+        for message in data["conversations"]:
             from_, value = message["from"], message["value"]
             value_ids = self.tokenizer.encode(text=value)
             if from_ == "human":
