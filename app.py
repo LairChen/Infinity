@@ -2,68 +2,30 @@ from json import dumps
 from os import getenv, system
 from threading import Thread
 from time import time
-from typing import Dict, List, Union
-from typing import Tuple
+from typing import Dict, List, Union, Tuple
 from uuid import uuid4
 
 import gradio as gr
+import numpy as np
 import torch
 from fastapi import FastAPI
 from flasgger import Schema, fields
-from flask import Flask, Blueprint, Response, current_app, request, stream_with_context
+from flask import Flask, Response, request, current_app, stream_with_context
 from flask_cors import CORS
 from marshmallow import validate
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import PolynomialFeatures
+from tiktoken import get_encoding
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 
 from utils import *
 
-blueprint = Blueprint(name="Chat", import_name=__name__, url_prefix="/v1/chat")
 
-
-# 使用marshmallow做序列化和参数校验
-
-class ChatMessageSchema(Schema):
-    """Chat消息结构映射"""
-    role = fields.Str(required=True)
-    content = fields.Str(required=True)
-
-
-class ChatDeltaSchema(Schema):
-    """Chat流式结构映射"""
-    role = fields.Str()
-    content = fields.Str()
-
-
-class ChatRequestSchema(Schema):
-    """Chat接口请求数据结构解析"""
-    model = fields.Str(required=True)  # noqa
-    messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
-    stream = fields.Bool(load_default=True)
-    max_tokens = fields.Int(load_default=None)
-    n = fields.Int(load_default=1)
-    seed = fields.Int(load_default=1)
-    top_p = fields.Float(load_default=1.0)
-    temperature = fields.Float(load_default=1.0)
-    presence_penalty = fields.Float(load_default=0.0)
-    frequency_penalty = fields.Float(load_default=0.0)
-
-
-class ChatChoiceSchema(Schema):
-    """Chat流式消息选择器"""
-    index = fields.Int(load_default=0)
-    delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
-    finish_reason = fields.Str(
-        validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]),  # noqa
-        metadata={"example": "stop"})
-
-
-class ChatResponseSchema(Schema):
-    """Chat接口响应数据结构映射"""
-    id = fields.Str(dump_default=lambda: uuid4().hex)
-    created = fields.Int(dump_default=lambda: int(time()))
-    model = fields.Str(required=True)  # noqa
-    choices = fields.List(fields.Nested(nested=ChatChoiceSchema))  # noqa
-    object = fields.Constant(constant="chat.completion.chunk")
+def init_frp() -> None:
+    """初始化frp客户端"""
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    return
 
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
@@ -82,18 +44,19 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     return my_model, my_tokenizer
 
 
-def init_frp() -> None:
-    """初始化frp客户端"""
-    system("chmod +x frpc/frpc")  # noqa
-    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
-    return
+def init_embeddings_model():
+    """"""
+    my_model = SentenceTransformer(
+        model_name_or_path="/dataset/moka-ai/m3e-large",
+        device="cuda"  # noqa
+    )
+    return my_model
 
 
 def init_api() -> Flask:
     """创建接口服务"""
     my_api = Flask(import_name=__name__)  # 声明主服务
     CORS(app=my_api)  # 允许跨域
-    my_api.register_blueprint(blueprint=blueprint)  # 注册蓝图
     return my_api
 
 
@@ -122,9 +85,103 @@ def init_demo() -> gr.Blocks:
     return my_demo
 
 
-def sse(line: Union[str, Dict]) -> str:
-    """Server Sent Events for stream"""
-    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+# 加载反向代理
+init_frp()
+
+# 加载模型
+model, tokenizer = init_model_and_tokenizer()
+
+# 加载嵌入模型
+embeddings_model = init_embeddings_model()
+
+# 加载接口服务
+api = init_api()  # noqa
+
+# 加载页面服务
+demo = init_demo()
+
+
+# 使用marshmallow做序列化和参数校验
+
+class ChatMessageSchema(Schema):
+    """Chat消息结构映射"""
+    role = fields.Str(required=True)
+    content = fields.Str(required=True)
+
+
+class ChatDeltaSchema(Schema):
+    """Chat流式结构映射"""
+    role = fields.Str()
+    content = fields.Str()
+
+
+class ChatChoiceSchema(Schema):
+    """Chat流式消息选择器"""
+    index = fields.Int(load_default=0)
+    delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
+    finish_reason = fields.Str(
+        validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]),  # noqa
+        metadata={"example": "stop"})
+
+
+class ChatRequestSchema(Schema):
+    """Chat接口请求数据结构解析"""
+    model = fields.Str(required=True)  # noqa
+    messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
+    stream = fields.Bool(load_default=True)
+    max_tokens = fields.Int(load_default=None)
+    n = fields.Int(load_default=1)
+    seed = fields.Int(load_default=1)
+    top_p = fields.Float(load_default=1.0)
+    temperature = fields.Float(load_default=1.0)
+    presence_penalty = fields.Float(load_default=0.0)
+    frequency_penalty = fields.Float(load_default=0.0)
+
+
+class ChatResponseSchema(Schema):
+    """Chat接口响应数据结构映射"""
+    id = fields.Str(dump_default=lambda: uuid4().hex)
+    created = fields.Int(dump_default=lambda: int(time()))
+    model = fields.Str(required=True)  # noqa
+    choices = fields.List(fields.Nested(nested=ChatChoiceSchema), required=True)  # noqa
+    object = fields.Constant(constant="chat.completions")
+
+
+class EmbeddingsDataSchema(Schema):
+    index = fields.Int(load_default=0)
+    embedding = fields.List(fields.Nested(nested=fields.Float), required=True)  # noqa
+    object = fields.Constant(constant="embeddings")
+
+
+class EmbeddingsUsageSchema(Schema):
+    prompt_tokens = fields.Int()
+    total_tokens = fields.Int()
+
+
+class EmbeddingsRequestSchema(Schema):
+    """"""
+    model = fields.Str(required=True)  # noqa
+    input: fields.List(fields.Nested(nested=fields.Str))  # noqa
+
+
+class EmbeddingsResponseSchema(Schema):
+    """"""
+    data = fields.List(fields.Nested(nested=EmbeddingsDataSchema))  # noqa
+    model = fields.Str(required=True)  # noqa
+    usage = fields.Nested(nested=EmbeddingsUsageSchema)  # noqa
+    object = fields.Constant(constant="embeddings")
+
+
+# @api.route(rule="/", methods=["GET"])
+# def index():
+#     return render_template("index.html")
+
+
+@api.route(rule="/v1/chat/completions", methods=["POST"])
+def chat_completions() -> Response:
+    """Chat接口"""
+    req = ChatRequestSchema().load(request.json)
+    return current_app.response_class(response=chat_stream(chat_dict=req), mimetype="text/event-stream")
 
 
 @stream_with_context
@@ -154,11 +211,59 @@ def chat_stream(chat_dict: Dict):
     yield sse(line="[DONE]")
 
 
-@blueprint.route(rule="/completions", methods=["POST"])
-def chat_completion() -> Response:
-    """Chat接口"""
-    chat_dict = ChatRequestSchema().load(request.json)
-    return current_app.response_class(response=chat_stream(chat_dict=chat_dict), mimetype="text/event-stream")
+def sse(line: Union[str, Dict]) -> str:
+    """Server Sent Events for stream"""
+    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+
+
+@api.route(rule="/v1/embeddings", methods=["POST"])
+def embeddings() -> str:
+    req = EmbeddingsRequestSchema().load(request.json)
+    em = [embeddings_model.encode(text) for text in req["input"]]
+    # OpenAI API 嵌入维度标准1536
+    em = [
+        expand_features(embedding, 1536) if len(embedding) < 1536 else embedding
+        for embedding in em
+    ]
+    em = [embedding / np.linalg.norm(embedding) for embedding in em]
+    em = [embedding.tolist() for embedding in em]
+    prompt_tokens = sum(len(text.split()) for text in req["input"])
+    total_tokens = sum(num_tokens_from_string(text) for text in req["input"])
+    response = {
+        "data": [
+            {"embedding": embedding, "index": index, "object": "embedding"}
+            for index, embedding in enumerate(em)
+        ],
+        "model": "model",
+        "object": "embeddings",
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "total_tokens": total_tokens,
+        },
+    }
+    return EmbeddingsResponseSchema().dump(response)
+
+
+def expand_features(embedding, target_length):
+    poly = PolynomialFeatures(degree=2)
+    expanded_embedding = poly.fit_transform(embedding.reshape(1, -1))
+    expanded_embedding = expanded_embedding.flatten()
+    if len(expanded_embedding) > target_length:
+        # 如果扩展后的特征超过目标长度，可以通过截断或其他方法来减少维度
+        expanded_embedding = expanded_embedding[:target_length]
+    elif len(expanded_embedding) < target_length:
+        # 如果扩展后的特征少于目标长度，可以通过填充或其他方法来增加维度
+        expanded_embedding = np.pad(
+            expanded_embedding, (0, target_length - len(expanded_embedding))
+        )
+    return expanded_embedding
+
+
+def num_tokens_from_string(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = get_encoding('cl100k_base')
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 
 def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
@@ -187,18 +292,6 @@ def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, 
     history.clear()
     return chatbot
 
-
-# 加载模型
-model, tokenizer = init_model_and_tokenizer()
-
-# 加载反向代理
-init_frp()
-
-# 加载接口服务
-api = init_api()  # noqa
-
-# 加载页面服务
-demo = init_demo()
 
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
 if __name__ == "__main__":
