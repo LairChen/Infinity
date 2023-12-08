@@ -44,7 +44,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     return my_model, my_tokenizer
 
 
-def init_embeddings_model() -> Optional[SentenceTransformer, None]:
+def init_embeddings_model() -> Optional[SentenceTransformer]:
     """初始化嵌入模型"""
     system("unzip /dataset/m3e-large.zip -d /dataset")
     my_model = SentenceTransformer(
