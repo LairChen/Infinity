@@ -179,7 +179,7 @@ class ChatResponseSchema(Schema):
 class EmbeddingsDataSchema(Schema):
     """Embeddings结果数据"""
     index = fields.Int(load_default=0)
-    embedding = fields.List(fields.Nested(nested=fields.Float), required=True)  # noqa
+    embedding = fields.List(fields.Float, required=True)  # noqa
     object = fields.Constant(constant="embeddings")
 
 
@@ -192,7 +192,7 @@ class EmbeddingsUsageSchema(Schema):
 class EmbeddingsRequestSchema(Schema):
     """Embeddings接口请求数据结构解析"""
     model = fields.Str(required=True)  # noqa
-    input = fields.List(fields.Nested(nested=fields.Str), required=True)  # noqa
+    input = fields.List(fields.Str, required=True)  # noqa
 
 
 class EmbeddingsResponseSchema(Schema):
