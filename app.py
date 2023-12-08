@@ -148,12 +148,14 @@ class ChatResponseSchema(Schema):
 
 
 class EmbeddingsDataSchema(Schema):
+    """Embeddings结果数据"""
     index = fields.Int(load_default=0)
     embedding = fields.List(fields.Nested(nested=fields.Float), required=True)  # noqa
     object = fields.Constant(constant="embeddings")
 
 
 class EmbeddingsUsageSchema(Schema):
+    """Embeddings用量数据"""
     prompt_tokens = fields.Int()
     total_tokens = fields.Int()
 
@@ -161,13 +163,13 @@ class EmbeddingsUsageSchema(Schema):
 class EmbeddingsRequestSchema(Schema):
     """Embeddings接口请求数据结构解析"""
     model = fields.Str(required=True)  # noqa
-    input = fields.List(fields.Nested(nested=fields.Str))  # noqa
+    input = fields.List(fields.Nested(nested=fields.Str), required=True)  # noqa
 
 
 class EmbeddingsResponseSchema(Schema):
     """Embeddings接口响应数据结构映射"""
-    data = fields.List(fields.Nested(nested=EmbeddingsDataSchema))  # noqa
     model = fields.Str(required=True)  # noqa
+    data = fields.List(fields.Nested(nested=EmbeddingsDataSchema))  # noqa
     usage = fields.Nested(nested=EmbeddingsUsageSchema)  # noqa
     object = fields.Constant(constant="embeddings")
 
@@ -218,52 +220,36 @@ def sse(line: Union[str, Dict]) -> str:
 
 @api.route(rule="/v1/embeddings", methods=["POST"])
 def embeddings() -> str:
+    """Embeddings接口"""
     req = EmbeddingsRequestSchema().load(request.json)
     em = [embeddings_model.encode(text) for text in req["input"]]
     # OpenAI API 嵌入维度标准1536
-    em = [
-        expand_features(embedding, 1536) if len(embedding) < 1536 else embedding
-        for embedding in em
-    ]
+    em = [padding(embedding, 1536) if len(embedding) < 1536 else embedding for embedding in em]
     em = [embedding / np.linalg.norm(embedding) for embedding in em]
     em = [embedding.tolist() for embedding in em]
     prompt_tokens = sum(len(text.split()) for text in req["input"])
     total_tokens = sum(num_tokens_from_string(text) for text in req["input"])
-    response = {
-        "data": [
-            {"embedding": embedding, "index": index, "object": "embedding"}
-            for index, embedding in enumerate(em)
-        ],
-        "model": "model",
-        "object": "embeddings",
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "total_tokens": total_tokens,
-        },
-    }
-    return EmbeddingsResponseSchema().dump(response)
+    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(em)]
+    usage = {"prompt_tokens": prompt_tokens, "total_tokens": total_tokens}
+    return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
 
 
-def expand_features(embedding, target_length):
-    poly = PolynomialFeatures(degree=2)
-    expanded_embedding = poly.fit_transform(embedding.reshape(1, -1))
+def padding(embedding, target_length):
+    expanded_embedding = PolynomialFeatures(degree=2).fit_transform(embedding.reshape(1, -1))
     expanded_embedding = expanded_embedding.flatten()
+    # 维度小填充，维度大截断
     if len(expanded_embedding) > target_length:
-        # 如果扩展后的特征超过目标长度，可以通过截断或其他方法来减少维度
         expanded_embedding = expanded_embedding[:target_length]
     elif len(expanded_embedding) < target_length:
-        # 如果扩展后的特征少于目标长度，可以通过填充或其他方法来增加维度
-        expanded_embedding = np.pad(
-            expanded_embedding, (0, target_length - len(expanded_embedding))
-        )
+        expanded_embedding = np.pad(expanded_embedding, (0, target_length - len(expanded_embedding)))
+    else:
+        pass
     return expanded_embedding
 
 
 def num_tokens_from_string(string: str) -> int:
     """Returns the number of tokens in a text string."""
-    encoding = get_encoding('cl100k_base')
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
+    return len(get_encoding(encoding_name="cl100k_base").encode(string))
 
 
 def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
