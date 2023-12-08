@@ -5,6 +5,8 @@ cfg.read(filenames="conf/config.ini", encoding="utf-8")
 
 appHost = cfg.get(section="app", option="app.host")
 appPort = cfg.getint(section="app", option="app.port")
+outputLength = cfg.getint(section="app", option="app.output.length")
+embeddingLength = cfg.getint(section="app", option="app.embedding.length")
 
 path_train_pretrain = cfg.get(section="path", option="path.train.pretrain")  # noqa
 path_train_finetune = cfg.get(section="path", option="path.train.finetune")  # noqa
@@ -22,6 +24,5 @@ llm = {
     "adam_epsilon": cfg.get(section="model", option="adam.epsilon"),
     "max_grad_norm": cfg.getfloat(section="model", option="max.grad.norm"),
     "warmup_ratio": cfg.getfloat(section="model", option="warmup.ratio"),  # noqa
-    "weight_decay": cfg.get(section="model", option="weight.decay"),
-    "output_max_length": cfg.getint(section="model", option="output.max.length")
+    "weight_decay": cfg.get(section="model", option="weight.decay")
 }
