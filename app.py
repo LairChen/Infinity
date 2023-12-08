@@ -60,7 +60,7 @@ model, tokenizer = init_model_and_tokenizer()
 embeddings_model = init_embeddings_model()
 
 
-def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
+def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
     """模型回答并更新聊天窗口"""
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
@@ -70,7 +70,7 @@ def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[s
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
         yield chatbot
-        if len(answer) > llm["output_max_length"]:
+        if len(answer) > outputLength:
             break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
@@ -85,13 +85,6 @@ def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, 
     chatbot.clear()
     history.clear()
     return chatbot
-
-
-def init_api() -> Flask:
-    """创建接口服务"""
-    my_api = Flask(import_name=__name__)  # 声明主服务
-    CORS(app=my_api)  # 允许跨域
-    return my_api
 
 
 def init_demo() -> gr.Blocks:
@@ -112,22 +105,31 @@ def init_demo() -> gr.Blocks:
         gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                           "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
         # 功能区
-        btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        btnSubmit.click(fn=get_answer, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
         btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
     my_demo.queue()
     return my_demo
 
 
-# 加载接口服务
-api = init_api()  # noqa
-
 # 加载页面服务
 demo = init_demo()
 
 
+def init_api() -> Flask:
+    """创建接口服务"""
+    my_api = Flask(import_name=__name__)  # 声明主服务
+    CORS(app=my_api)  # 允许跨域
+    return my_api
+
+
+# 加载接口服务
+api = init_api()
+
+
 # @api.route(rule="/", methods=["GET"])
 # def index():
+#     """接口服务首页"""
 #     return render_template("index.html")
 
 
@@ -145,7 +147,7 @@ def chat_stream(chat_dict: Dict):
     position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
-    yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
     # 多轮对话，流式输出
     for answer in model.chat(tokenizer, chat_dict["messages"], stream=True):
         if torch.backends.mps.is_available():  # noqa
@@ -155,17 +157,17 @@ def chat_stream(chat_dict: Dict):
             continue
         delta = ChatDeltaSchema().dump({"content": content})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+        yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
-        if position > llm["output_max_length"]:
+        if position > outputLength:
             break
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
-    yield sse(line="[DONE]")
+    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line="[DONE]")
 
 
-def sse(line: Union[str, Dict]) -> str:
+def chat_sse(line: Union[str, Dict]) -> str:
     """Server Sent Events for stream"""
     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
@@ -174,34 +176,32 @@ def sse(line: Union[str, Dict]) -> str:
 def embeddings() -> str:
     """Embeddings接口"""
     req = EmbeddingsRequestSchema().load(request.json)
-    em = [embeddings_model.encode(text) for text in req["input"]]
+    result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
     # OpenAI API 嵌入维度标准1536
-    em = [padding(embedding, 1536) if len(embedding) < 1536 else embedding for embedding in em]
-    em = [embedding / np.linalg.norm(embedding) for embedding in em]
-    em = [embedding.tolist() for embedding in em]
+    result = [embeddings_pad(embedding=embedding, target_length=embeddingLength)
+              if len(embedding) < embeddingLength else embedding for embedding in result]
+    result = [embedding / np.linalg.norm(x=embedding) for embedding in result]
+    result = [embedding.tolist() for embedding in result]
     prompt_tokens = sum(len(text.split()) for text in req["input"])
-    total_tokens = sum(num_tokens_from_string(text) for text in req["input"])
-    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(em)]
+    total_tokens = sum(embeddings_token_num(text=text) for text in req["input"])
+    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(result)]
     usage = {"prompt_tokens": prompt_tokens, "total_tokens": total_tokens}
     return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
 
 
-def padding(embedding, target_length):
-    expanded_embedding = PolynomialFeatures(degree=2).fit_transform(embedding.reshape(1, -1))
-    expanded_embedding = expanded_embedding.flatten()
+def embeddings_pad(embedding: np.ndarray, target_length: int) -> np.ndarray:
+    """按照指定维度对嵌入向量进行扩缩"""
+    embedding = PolynomialFeatures(degree=2).fit_transform(X=embedding.reshape(1, -1))
+    embedding = embedding.flatten()
     # 维度小填充，维度大截断
-    if len(expanded_embedding) > target_length:
-        expanded_embedding = expanded_embedding[:target_length]
-    elif len(expanded_embedding) < target_length:
-        expanded_embedding = np.pad(expanded_embedding, (0, target_length - len(expanded_embedding)))
-    else:
-        pass
-    return expanded_embedding
+    if len(embedding) < target_length:
+        return np.pad(array=embedding, pad_width=(0, target_length - len(embedding)))
+    return embedding[:target_length]
 
 
-def num_tokens_from_string(string: str) -> int:
-    """Returns the number of tokens in a text string."""
-    return len(get_encoding(encoding_name="cl100k_base").encode(string))
+def embeddings_token_num(text: str) -> int:
+    """计算嵌入消耗"""
+    return len(get_encoding(encoding_name="cl100k_base").encode(text=text))
 
 
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
