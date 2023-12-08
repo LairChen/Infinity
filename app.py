@@ -47,7 +47,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
 def init_embeddings_model():
     """初始化嵌入模型"""
     my_model = SentenceTransformer(
-        model_name_or_path="/dataset/moka-ai/m3e-large",
+        model_name_or_path="/dataset/m3e-large",
         device="cuda"  # noqa
     )
     return my_model
