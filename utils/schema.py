@@ -23,9 +23,7 @@ class ChatChoiceSchema(Schema):
     """Chat流式消息选择器"""
     index = fields.Int(load_default=0)
     delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
-    finish_reason = fields.Str(
-        validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]),  # noqa
-        metadata={"example": "stop"})
+    finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
 
 
 class ChatRequestSchema(Schema):
@@ -55,13 +53,13 @@ class EmbeddingsDataSchema(Schema):
     """Embeddings结果数据"""
     index = fields.Int(load_default=0)
     embedding = fields.List(fields.Float, required=True)  # noqa
-    object = fields.Constant(constant="embeddings")
+    object = fields.Constant(constant="embedding")
 
 
 class EmbeddingsUsageSchema(Schema):
     """Embeddings用量数据"""
-    prompt_tokens = fields.Int()
-    total_tokens = fields.Int()
+    prompt_tokens = fields.Int(required=True)
+    total_tokens = fields.Int(required=True)
 
 
 class EmbeddingsRequestSchema(Schema):
