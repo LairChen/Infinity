@@ -2,7 +2,7 @@ from json import dumps
 from os import getenv, system
 from threading import Thread
 from time import time
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Union, Tuple, Optional
 from uuid import uuid4
 
 import gradio as gr
@@ -44,7 +44,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     return my_model, my_tokenizer
 
 
-def init_embeddings_model():
+def init_embeddings_model() -> Optional[SentenceTransformer, None]:
     """初始化嵌入模型"""
     system("unzip /dataset/m3e-large.zip -d /dataset")
     my_model = SentenceTransformer(
@@ -94,6 +94,34 @@ model, tokenizer = init_model_and_tokenizer()
 
 # 加载嵌入模型
 embeddings_model = init_embeddings_model()
+
+
+def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
+    """模型回答并更新聊天窗口"""
+    chatbot.append([textbox, ""])
+    history.append({"role": "user", "content": textbox})
+    # 多轮对话，流式输出
+    for answer in model.chat(tokenizer, history, stream=True):
+        if torch.backends.mps.is_available():  # noqa
+            torch.mps.empty_cache()  # noqa
+        chatbot[-1][1] = answer
+        yield chatbot
+        if len(answer) > llm["output_max_length"]:
+            break
+    history.append({"role": "assistant", "content": chatbot[-1][1]})
+
+
+def clear_textbox() -> Dict:
+    """清理用户输入空间"""
+    return gr.update(value="")
+
+
+def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, str]]) -> List:  # noqa
+    """清理人机对话历史记录"""
+    chatbot.clear()
+    history.clear()
+    return chatbot
+
 
 # 加载接口服务
 api = init_api()  # noqa
@@ -251,33 +279,6 @@ def padding(embedding, target_length):
 def num_tokens_from_string(string: str) -> int:
     """Returns the number of tokens in a text string."""
     return len(get_encoding(encoding_name="cl100k_base").encode(string))
-
-
-def chat_with_model(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
-    """模型回答并更新聊天窗口"""
-    chatbot.append([textbox, ""])
-    history.append({"role": "user", "content": textbox})
-    # 多轮对话，流式输出
-    for answer in model.chat(tokenizer, history, stream=True):
-        if torch.backends.mps.is_available():  # noqa
-            torch.mps.empty_cache()  # noqa
-        chatbot[-1][1] = answer
-        yield chatbot
-        if len(answer) > llm["output_max_length"]:
-            break
-    history.append({"role": "assistant", "content": chatbot[-1][1]})
-
-
-def clear_textbox() -> Dict:
-    """清理用户输入空间"""
-    return gr.update(value="")
-
-
-def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, str]]) -> List:  # noqa
-    """清理人机对话历史记录"""
-    chatbot.clear()
-    history.clear()
-    return chatbot
 
 
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
