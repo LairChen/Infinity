@@ -54,38 +54,6 @@ def init_embeddings_model() -> Optional[SentenceTransformer]:
     return my_model
 
 
-def init_api() -> Flask:
-    """创建接口服务"""
-    my_api = Flask(import_name=__name__)  # 声明主服务
-    CORS(app=my_api)  # 允许跨域
-    return my_api
-
-
-def init_demo() -> gr.Blocks:
-    """创建页面服务"""
-    with gr.Blocks(title="Infinity Model") as my_demo:
-        # 布局区
-        gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
-                          "style='height: 100px'/><p>")
-        gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
-        gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
-        gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
-        chatbot = gr.Chatbot(label="Infinity Model")  # noqa
-        textbox = gr.Textbox(label="Input", lines=2)
-        history = gr.State(value=[])
-        with gr.Row():
-            btnSubmit = gr.Button("Submit 🚀")
-            btnClear = gr.Button("Clear 🧹")
-        gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
-                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
-        # 功能区
-        btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
-        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
-        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
-    my_demo.queue()
-    return my_demo
-
-
 # 加载反向代理
 init_frp()
 
@@ -121,6 +89,38 @@ def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, 
     chatbot.clear()
     history.clear()
     return chatbot
+
+
+def init_api() -> Flask:
+    """创建接口服务"""
+    my_api = Flask(import_name=__name__)  # 声明主服务
+    CORS(app=my_api)  # 允许跨域
+    return my_api
+
+
+def init_demo() -> gr.Blocks:
+    """创建页面服务"""
+    with gr.Blocks(title="Infinity Model") as my_demo:
+        # 布局区
+        gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
+                          "style='height: 100px'/><p>")
+        gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
+        gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
+        gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
+        chatbot = gr.Chatbot(label="Infinity Model")  # noqa
+        textbox = gr.Textbox(label="Input", lines=2)
+        history = gr.State(value=[])
+        with gr.Row():
+            btnSubmit = gr.Button("Submit 🚀")
+            btnClear = gr.Button("Clear 🧹")
+        gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
+                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
+        # 功能区
+        btnSubmit.click(fn=chat_with_model, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
+        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
+    my_demo.queue()
+    return my_demo
 
 
 # 加载接口服务
