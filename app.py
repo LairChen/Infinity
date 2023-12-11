@@ -1,5 +1,5 @@
 from json import dumps
-from os import getenv, system
+from os import getenv, listdir, system
 from threading import Thread
 from typing import Dict, List, Union, Tuple, Optional
 
@@ -16,7 +16,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, P
 
 from utils import *
 
-
 """
 #####           ###   #           #     #                  #####  #
   #             #                       #                  #   #  #
@@ -29,6 +28,15 @@ from utils import *
 """
 
 
+def get_model_name() -> str:
+    """动态获取基座模型名称"""
+    for filename in listdir(path_train_pretrain):
+        model = match(pattern="(.*)\.zip", string=filename)  # noqa
+        if model is not None:
+            return model.groups()[0]
+    return ""
+
+
 def init_frp() -> None:
     """初始化frp客户端"""
     system("chmod +x frpc/frpc")  # noqa
@@ -38,17 +46,31 @@ def init_frp() -> None:
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     """初始化模型和词表"""
-    my_model = AutoModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path=path_eval_finetune,
-        torch_dtype=torch.float16,
-        device_map="auto",
-        trust_remote_code=True
-    ).eval()
-    my_tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=path_eval_finetune,
-        use_fast=False,
-        trust_remote_code=True
-    )
+    if listdir():
+        my_model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=path_eval_finetune,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
+        ).eval()
+        my_tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=path_eval_finetune,
+            use_fast=False,
+            trust_remote_code=True
+        )
+    elif get_model_name() == "deepseek-coder-6.7b-instruct":  # noqa
+        my_model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path="deepseek-coder-6.7b-instruct",  # noqa
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            trust_remote_code=True)
+        my_tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path="deepseek-coder-6.7b-instruct",  # noqa
+            trust_remote_code=True
+        )
+        my_tokenizer.use_default_system_prompt = False
+    else:
+        raise RuntimeError("No chat model found.")
     return my_model, my_tokenizer
 
 
@@ -72,7 +94,7 @@ model, tokenizer = init_model_and_tokenizer()
 embeddings_model = init_embeddings_model()
 
 
-def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
+def chat_with_bot(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
     """模型回答并更新聊天窗口"""
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
@@ -119,7 +141,7 @@ def init_demo() -> gr.Blocks:
         gr.Markdown(value="<center><font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                           "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠</center>")
         # 功能区
-        btnSubmit.click(fn=get_answer, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        btnSubmit.click(fn=chat_with_bot, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
         btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
     my_demo.queue()
