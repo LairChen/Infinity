@@ -91,7 +91,8 @@ def init_demo() -> gr.Blocks:
     """创建页面服务"""
     with gr.Blocks(title="Infinity Model") as my_demo:
         # 布局区
-        gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
+        gr.Markdown(value="<p align='center'>"
+                          "<img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/templates/Infinity.png' "
                           "style='height: 100px'></p>")
         gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
