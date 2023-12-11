@@ -92,18 +92,18 @@ def init_demo() -> gr.Blocks:
     with gr.Blocks(title="Infinity Model") as my_demo:
         # 布局区
         gr.Markdown(value="<p align='center'><img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/Infinity.png' "
-                          "style='height: 100px'/><p>")
+                          "style='height: 100px'></p>")
         gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
-        gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥")
+        gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥</center>")
         chatbot = gr.Chatbot(label="Infinity Model")  # noqa
         textbox = gr.Textbox(label="Input", lines=2)
         history = gr.State(value=[])
         with gr.Row():
             btnSubmit = gr.Button("Submit 🚀")
             btnClear = gr.Button("Clear 🧹")
-        gr.Markdown(value="<font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
-                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠")
+        gr.Markdown(value="<center><font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
+                          "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠</center>")
         # 功能区
         btnSubmit.click(fn=get_answer, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
