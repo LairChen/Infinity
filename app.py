@@ -17,6 +17,18 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, P
 from utils import *
 
 
+"""
+#####           ###   #           #     #                  #####  #
+  #             #                       #                  #   #  #
+  #    #####  #####   #   #####   #   #####  #   #         #####  #####  #   #  #####
+  #    #   #    #     #   #   #   #     #    #   #  #####  # #    #   #  #   #  ##
+  #    #   #    #     #   #   #   #     #    #   #         #  #   #   #  #   #     ##
+#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  ##### 
+                                                 #                           #
+                                             #####                       #####
+"""
+
+
 def init_frp() -> None:
     """初始化frp客户端"""
     system("chmod +x frpc/frpc")  # noqa
