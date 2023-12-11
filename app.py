@@ -7,7 +7,7 @@ import gradio as gr
 import numpy as np
 import torch
 from fastapi import FastAPI
-from flask import Flask, Response, request, current_app, stream_with_context
+from flask import Flask, Response, request, current_app, render_template, stream_with_context
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import PolynomialFeatures
@@ -23,7 +23,7 @@ from utils import *
   #    #####  #####   #   #####   #   #####  #   #         #####  #####  #   #  #####
   #    #   #    #     #   #   #   #     #    #   #  #####  # #    #   #  #   #  ##
   #    #   #    #     #   #   #   #     #    #   #         #  #   #   #  #   #     ##
-#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  ##### 
+#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  #####
                                                  #                           #
                                              #####                       #####
 """
@@ -105,7 +105,8 @@ def init_demo() -> gr.Blocks:
         # 布局区
         gr.Markdown(value="<p align='center'>"
                           "<img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/templates/Infinity.png' "
-                          "style='height: 100px'></p>")
+                          "style='height: 100px'>"
+                          "</p>")
         gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
         gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥</center>")
@@ -140,10 +141,10 @@ def init_api() -> Flask:
 api = init_api()
 
 
-# @api.route(rule="/", methods=["GET"])
-# def index():
-#     """接口服务首页"""
-#     return render_template("index.html")
+@api.route(rule="/", methods=["GET"])
+def homepage():
+    """接口服务首页"""
+    return render_template(template_name_or_list="Infinity.html")  # noqa
 
 
 @api.route(rule="/v1/chat/completions", methods=["POST"])
