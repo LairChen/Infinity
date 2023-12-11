@@ -13,7 +13,7 @@ from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import PolynomialFeatures
 from tiktoken import get_encoding
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer, TextIteratorStreamer
 
 from utils import *
 
@@ -70,7 +70,6 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
             pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
             trust_remote_code=True
         )
-        my_tokenizer.use_default_system_prompt = False
     else:
         raise RuntimeError("No chat model found.")
     return my_model, my_tokenizer
@@ -97,12 +96,40 @@ model, tokenizer = init_model_and_tokenizer()
 embeddings_model = init_embeddings_model()
 
 
+def chat(message):
+    conversation = [{"role": "user", "content": message}]
+
+    input_ids = tokenizer.apply_chat_template(conversation, return_tensors="pt")
+    if input_ids.shape[1] > 4096:
+        input_ids = input_ids[:, -4096:]
+    input_ids = input_ids.to(model.device)
+
+    streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+    generate_kwargs = dict(
+        {"input_ids": input_ids},
+        streamer=streamer,
+        max_new_tokens=1024,
+        do_sample=False,
+        num_beams=1,
+        repetition_penalty=1,
+        eos_token_id=32021
+    )
+    t = Thread(target=model.generate, kwargs=generate_kwargs)
+    t.start()
+
+    outputs = []
+    for text in streamer:
+        outputs.append(text)
+        yield "".join(outputs).replace("<|EOT|>", "")
+
+
 def chat_with_bot(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
     """模型回答并更新聊天窗口"""
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
     # 多轮对话，流式输出
-    for answer in model.chat(tokenizer, history, stream=True):
+    # for answer in model.chat(tokenizer, history, stream=True):
+    for answer in chat(textbox):
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
@@ -188,7 +215,8 @@ def chat_stream(chat_dict: Dict):
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
     # 多轮对话，流式输出
-    for answer in model.chat(tokenizer, chat_dict["messages"], stream=True):
+    # for answer in model.chat(tokenizer, chat_dict["messages"], stream=True):
+    for answer in chat(chat_dict["messages"][-1]["content"]):
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
         content = answer[position:]
