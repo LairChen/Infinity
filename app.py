@@ -30,7 +30,7 @@ from utils import *
 
 def get_model_name() -> str:
     """动态获取基座模型名称"""
-    for filename in listdir(path_train_pretrain):
+    for filename in listdir(path_eval_pretrain):
         model = match(pattern="(.*)\.zip", string=filename)  # noqa
         if model is not None:
             return model.groups()[0]
@@ -60,12 +60,12 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
         )
     elif get_model_name() == "deepseek-coder-6.7b-instruct":  # noqa
         my_model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path="deepseek-coder-6.7b-instruct",  # noqa
+            pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
             torch_dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True)
         my_tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path="deepseek-coder-6.7b-instruct",  # noqa
+            pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
             trust_remote_code=True
         )
         my_tokenizer.use_default_system_prompt = False
