@@ -46,7 +46,7 @@ def init_frp() -> None:
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     """初始化模型和词表"""
-    if listdir():
+    if False:
         my_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path_eval_finetune,
             torch_dtype=torch.float16,
@@ -59,6 +59,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
             trust_remote_code=True
         )
     elif get_model_name() == "deepseek-coder-6.7b-instruct":  # noqa
+        system("unzip /dataset/deepseek-coder-6.7b-instruct.zip -d /dataset")
         my_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
             torch_dtype=torch.bfloat16,
