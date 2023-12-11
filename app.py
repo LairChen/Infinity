@@ -78,6 +78,7 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
 
 def init_embeddings_model() -> Optional[SentenceTransformer]:
     """初始化嵌入模型"""
+    return None
     system("unzip /dataset/m3e-large.zip -d /dataset")
     my_model = SentenceTransformer(
         model_name_or_path="/dataset/m3e-large",
