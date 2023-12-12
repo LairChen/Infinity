@@ -16,17 +16,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, P
 
 from utils import *
 
-"""
-#####           ###   #           #     #                  #####  #
-  #             #                       #                  #   #  #
-  #    #####  #####   #   #####   #   #####  #   #         #####  #####  #   #  #####
-  #    #   #    #     #   #   #   #     #    #   #  #####  # #    #   #  #   #  ##
-  #    #   #    #     #   #   #   #     #    #   #         #  #   #   #  #   #     ##
-#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  #####
-                                                 #                           #
-                                             #####                       #####
-"""
-
 
 # STEP1.加载模型
 # 包括对话模型和嵌入模型，其中对话模型从model走，嵌入模型从dataset走
@@ -60,17 +49,6 @@ def init_embeddings_model() -> Optional[SentenceTransformer]:
 
 model, tokenizer = init_model_and_tokenizer()
 embeddings_model = init_embeddings_model()
-
-"""
-#####           ###   #           #     #                  #####  #
-  #             #                       #                  #   #  #
-  #    #####  #####   #   #####   #   #####  #   #         #####  #####  #   #  #####
-  #    #   #    #     #   #   #   #     #    #   #  #####  # #    #   #  #   #  ##
-  #    #   #    #     #   #   #   #     #    #   #         #  #   #   #  #   #     ##
-#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  #####
-                                                 #                           #
-                                             #####                       #####
-"""
 
 
 # STEP2.启动接口服务
@@ -173,18 +151,6 @@ def embeddings_pad(embedding: np.ndarray, target_length: int) -> np.ndarray:
 def embeddings_token_num(text: str) -> int:
     """计算嵌入消耗"""
     return len(get_encoding(encoding_name="cl100k_base").encode(text=text))
-
-
-"""
-#####           ###   #           #     #                  #####  #
-  #             #                       #                  #   #  #
-  #    #####  #####   #   #####   #   #####  #   #         #####  #####  #   #  #####
-  #    #   #    #     #   #   #   #     #    #   #  #####  # #    #   #  #   #  ##
-  #    #   #    #     #   #   #   #     #    #   #         #  #   #   #  #   #     ##
-#####  #   #    #     #   #   #   #     ###  #####         #   #  #   #  #####  #####
-                                                 #                           #
-                                             #####                       #####
-"""
 
 
 # STEP3.启动页面服务
