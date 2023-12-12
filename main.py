@@ -1,10 +1,7 @@
 from json import load
 from os import system, listdir, mkdir
 from re import match
-
-import torch
-from peft import AutoPeftModelForCausalLM
-from transformers import AutoTokenizer
+from time import sleep
 
 from utils import *
 
@@ -21,27 +18,7 @@ def get_model_name() -> str:
         model = match(pattern="(.*)\.zip", string=filename)  # noqa
         if model is not None:
             return model.groups()[0]
-    raise FileNotFoundError("No existing base model")
-
-
-def merge_model_and_tokenizer() -> None:
-    """合并模型和词表以构建HF标准模型"""
-    model = AutoPeftModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path=f"{path_train_pretrain}/tune",
-        torch_dtype=torch.float16,
-        device_map="auto",
-        trust_remote_code=True
-    ).eval()
-    model = model.merge_and_unload()
-    model.save_pretrained(save_directory=path_train_finetune, safe_serialization=True)
-    tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=f"{path_train_pretrain}/{get_model_name()}",
-        use_fast=False,
-        trust_remote_code=True
-    )
-    tokenizer.save_pretrained(save_directory=path_train_finetune)
-    del model, tokenizer
-    return
+    raise FileNotFoundError("No existing base model.")
 
 
 cmd_train = "deepspeed core/train.py " \
@@ -70,11 +47,17 @@ cmd_train = "deepspeed core/train.py " \
             "--bf16 True " \
             "--tf32 False " \
             "--use_lora True"
+cmd_merge = "python core/merge.py " \
+            f"--input {path_train_pretrain} " \
+            f"--output {path_train_finetune} " \
+            f"--model {get_model_name()}"
 cmd_predict = "python core/predict.py " \
               f"--model {path_train_finetune}"
 
 if __name__ == "__main__":
     mkdir(f"{path_train_pretrain}/tune")  # 创建模型微调的临时路径
     system(cmd_train)  # 模型微调
-    merge_model_and_tokenizer()  # 合并微调参数和词表
+    sleep(10)
+    system(cmd_merge)  # 合并微调参数和词表
+    sleep(10)
     system(cmd_predict)  # 模型预测
