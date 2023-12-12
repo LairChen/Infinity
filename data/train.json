@@ -4,6 +4,19 @@
     "conversations": [
       {
         "from": "human",
+        "value": "法律咨询合同是否属于印花税征税范围？"
+      },
+      {
+        "from": "gpt",
+        "value": "技术咨询合同是当事人就有关项目的分析、论证、评价、预测和调查订立的技术合同。有关项目包括：1.有关科学技术与经济、社会协调发展的软科学研究项目；2.促进科技进步和管理现代化，提高经济效益和社会效益的技术项目；3.其他专业项目。对属于这些内容的合同，均应按照“技术合同”税目的规定计税贴花。    至于一般的法律、法规、会计、审计等方面的咨询不属于技术咨询，其所立合同不贴印花。"
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "conversations": [
+      {
+        "from": "human",
         "value": "法人变更后，之前的法人实名绑定信息是否会自动解绑，还是必须要手动解绑？"
       },
       {
@@ -13,7 +26,7 @@
     ]
   },
   {
-    "id": 1,
+    "id": 2,
     "conversations": [
       {
         "from": "human",
@@ -26,7 +39,7 @@
     ]
   },
   {
-    "id": 2,
+    "id": 3,
     "conversations": [
       {
         "from": "human",
@@ -39,7 +52,7 @@
     ]
   },
   {
-    "id": 3,
+    "id": 4,
     "conversations": [
       {
         "from": "human",
@@ -52,7 +65,7 @@
     ]
   },
   {
-    "id": 4,
+    "id": 5,
     "conversations": [
       {
         "from": "human",
@@ -65,7 +78,7 @@
     ]
   },
   {
-    "id": 5,
+    "id": 6,
     "conversations": [
       {
         "from": "human",
@@ -78,7 +91,7 @@
     ]
   },
   {
-    "id": 6,
+    "id": 7,
     "conversations": [
       {
         "from": "human",
@@ -91,7 +104,7 @@
     ]
   },
   {
-    "id": 7,
+    "id": 8,
     "conversations": [
       {
         "from": "human",
@@ -104,7 +117,7 @@
     ]
   },
   {
-    "id": 8,
+    "id": 9,
     "conversations": [
       {
         "from": "human",
@@ -117,7 +130,7 @@
     ]
   },
   {
-    "id": 9,
+    "id": 10,
     "conversations": [
       {
         "from": "human",
@@ -130,7 +143,7 @@
     ]
   },
   {
-    "id": 10,
+    "id": 11,
     "conversations": [
       {
         "from": "human",
@@ -143,7 +156,7 @@
     ]
   },
   {
-    "id": 11,
+    "id": 12,
     "conversations": [
       {
         "from": "human",
@@ -156,7 +169,7 @@
     ]
   },
   {
-    "id": 12,
+    "id": 13,
     "conversations": [
       {
         "from": "human",
@@ -169,7 +182,7 @@
     ]
   },
   {
-    "id": 13,
+    "id": 14,
     "conversations": [
       {
         "from": "human",
@@ -182,7 +195,7 @@
     ]
   },
   {
-    "id": 14,
+    "id": 15,
     "conversations": [
       {
         "from": "human",
@@ -195,7 +208,7 @@
     ]
   },
   {
-    "id": 15,
+    "id": 16,
     "conversations": [
       {
         "from": "human",
@@ -208,7 +221,7 @@
     ]
   },
   {
-    "id": 16,
+    "id": 17,
     "conversations": [
       {
         "from": "human",
@@ -221,7 +234,7 @@
     ]
   },
   {
-    "id": 17,
+    "id": 18,
     "conversations": [
       {
         "from": "human",
@@ -234,7 +247,7 @@
     ]
   },
   {
-    "id": 18,
+    "id": 19,
     "conversations": [
       {
         "from": "human",
@@ -247,7 +260,7 @@
     ]
   },
   {
-    "id": 19,
+    "id": 20,
     "conversations": [
       {
         "from": "human",
@@ -260,7 +273,7 @@
     ]
   },
   {
-    "id": 20,
+    "id": 21,
     "conversations": [
       {
         "from": "human",
@@ -273,7 +286,7 @@
     ]
   },
   {
-    "id": 21,
+    "id": 22,
     "conversations": [
       {
         "from": "human",
@@ -286,7 +299,7 @@
     ]
   },
   {
-    "id": 22,
+    "id": 23,
     "conversations": [
       {
         "from": "human",
@@ -299,7 +312,7 @@
     ]
   },
   {
-    "id": 23,
+    "id": 24,
     "conversations": [
       {
         "from": "human",
@@ -312,7 +325,7 @@
     ]
   },
   {
-    "id": 24,
+    "id": 25,
     "conversations": [
       {
         "from": "human",
@@ -325,7 +338,7 @@
     ]
   },
   {
-    "id": 25,
+    "id": 26,
     "conversations": [
       {
         "from": "human",
@@ -338,7 +351,7 @@
     ]
   },
   {
-    "id": 26,
+    "id": 27,
     "conversations": [
       {
         "from": "human",
@@ -351,7 +364,7 @@
     ]
   },
   {
-    "id": 27,
+    "id": 28,
     "conversations": [
       {
         "from": "human",
@@ -364,7 +377,7 @@
     ]
   },
   {
-    "id": 28,
+    "id": 29,
     "conversations": [
       {
         "from": "human",
@@ -377,7 +390,7 @@
     ]
   },
   {
-    "id": 29,
+    "id": 30,
     "conversations": [
       {
         "from": "human",
@@ -390,7 +403,7 @@
     ]
   },
   {
-    "id": 30,
+    "id": 31,
     "conversations": [
       {
         "from": "human",
@@ -403,7 +416,7 @@
     ]
   },
   {
-    "id": 31,
+    "id": 32,
     "conversations": [
       {
         "from": "human",
@@ -416,7 +429,7 @@
     ]
   },
   {
-    "id": 32,
+    "id": 33,
     "conversations": [
       {
         "from": "human",
@@ -429,7 +442,7 @@
     ]
   },
   {
-    "id": 33,
+    "id": 34,
     "conversations": [
       {
         "from": "human",
@@ -442,7 +455,7 @@
     ]
   },
   {
-    "id": 34,
+    "id": 35,
     "conversations": [
       {
         "from": "human",
@@ -455,7 +468,7 @@
     ]
   },
   {
-    "id": 35,
+    "id": 36,
     "conversations": [
       {
         "from": "human",
@@ -468,7 +481,7 @@
     ]
   },
   {
-    "id": 36,
+    "id": 37,
     "conversations": [
       {
         "from": "human",
@@ -481,7 +494,7 @@
     ]
   },
   {
-    "id": 37,
+    "id": 38,
     "conversations": [
       {
         "from": "human",
@@ -494,7 +507,7 @@
     ]
   },
   {
-    "id": 38,
+    "id": 39,
     "conversations": [
       {
         "from": "human",
@@ -507,7 +520,7 @@
     ]
   },
   {
-    "id": 39,
+    "id": 40,
     "conversations": [
       {
         "from": "human",
@@ -520,7 +533,7 @@
     ]
   },
   {
-    "id": 40,
+    "id": 41,
     "conversations": [
       {
         "from": "human",
@@ -533,7 +546,7 @@
     ]
   },
   {
-    "id": 41,
+    "id": 42,
     "conversations": [
       {
         "from": "human",
@@ -546,7 +559,7 @@
     ]
   },
   {
-    "id": 42,
+    "id": 43,
     "conversations": [
       {
         "from": "human",
@@ -559,7 +572,7 @@
     ]
   },
   {
-    "id": 43,
+    "id": 44,
     "conversations": [
       {
         "from": "human",
@@ -572,7 +585,7 @@
     ]
   },
   {
-    "id": 44,
+    "id": 45,
     "conversations": [
       {
         "from": "human",
@@ -585,7 +598,7 @@
     ]
   },
   {
-    "id": 45,
+    "id": 46,
     "conversations": [
       {
         "from": "human",
@@ -598,7 +611,7 @@
     ]
   },
   {
-    "id": 46,
+    "id": 47,
     "conversations": [
       {
         "from": "human",
@@ -611,7 +624,7 @@
     ]
   },
   {
-    "id": 47,
+    "id": 48,
     "conversations": [
       {
         "from": "human",
@@ -624,7 +637,7 @@
     ]
   },
   {
-    "id": 48,
+    "id": 49,
     "conversations": [
       {
         "from": "human",
@@ -637,7 +650,7 @@
     ]
   },
   {
-    "id": 49,
+    "id": 50,
     "conversations": [
       {
         "from": "human",
@@ -650,7 +663,7 @@
     ]
   },
   {
-    "id": 50,
+    "id": 51,
     "conversations": [
       {
         "from": "human",
@@ -663,7 +676,7 @@
     ]
   },
   {
-    "id": 51,
+    "id": 52,
     "conversations": [
       {
         "from": "human",
@@ -676,7 +689,7 @@
     ]
   },
   {
-    "id": 52,
+    "id": 53,
     "conversations": [
       {
         "from": "human",
@@ -689,7 +702,7 @@
     ]
   },
   {
-    "id": 53,
+    "id": 54,
     "conversations": [
       {
         "from": "human",
@@ -702,7 +715,7 @@
     ]
   },
   {
-    "id": 54,
+    "id": 55,
     "conversations": [
       {
         "from": "human",
@@ -715,7 +728,7 @@
     ]
   },
   {
-    "id": 55,
+    "id": 56,
     "conversations": [
       {
         "from": "human",
@@ -728,7 +741,7 @@
     ]
   },
   {
-    "id": 56,
+    "id": 57,
     "conversations": [
       {
         "from": "human",
@@ -741,7 +754,7 @@
     ]
   },
   {
-    "id": 57,
+    "id": 58,
     "conversations": [
       {
         "from": "human",
@@ -754,7 +767,7 @@
     ]
   },
   {
-    "id": 58,
+    "id": 59,
     "conversations": [
       {
         "from": "human",
@@ -767,7 +780,7 @@
     ]
   },
   {
-    "id": 59,
+    "id": 60,
     "conversations": [
       {
         "from": "human",
@@ -776,19 +789,14 @@
       {
         "from": "gpt",
         "value": "个体工商户业主用于个人和家庭的支出不得扣除。个体工商户生产经营活动中，应当分别核算生产经营费用和个人、家庭费用。对于生产经营与个人、家庭生活混用难以分清的费用，其40%视为与生产经营有关费用，准予扣除。"
-      }
-    ]
-  },
-  {
-    "id": 60,
-    "conversations": [
+      },
       {
         "from": "human",
-        "value": "法律咨询合同是否属于印花税征税范围？"
+        "value": "个体工商户业主的家庭支出是否可以在个人所得税税前扣除？"
       },
       {
         "from": "gpt",
-        "value": "技术咨询合同是当事人就有关项目的分析、论证、评价、预测和调查订立的技术合同。有关项目包括：1.有关科学技术与经济、社会协调发展的软科学研究项目；2.促进科技进步和管理现代化，提高经济效益和社会效益的技术项目；3.其他专业项目。对属于这些内容的合同，均应按照“技术合同”税目的规定计税贴花。    至于一般的法律、法规、会计、审计等方面的咨询不属于技术咨询，其所立合同不贴印花。"
+        "value": "个体工商户业主用于个人和家庭的支出不得扣除。个体工商户生产经营活动中，应当分别核算生产经营费用和个人、家庭费用。对于生产经营与个人、家庭生活混用难以分清的费用，其40%视为与生产经营有关费用，准予扣除。"
       }
     ]
   }
