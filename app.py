@@ -47,43 +47,43 @@ def init_frp() -> None:
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     """初始化模型和词表"""
-    if False:
-        my_model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=path_eval_finetune,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            trust_remote_code=True
-        ).eval()
-        my_tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=path_eval_finetune,
-            use_fast=False,
-            trust_remote_code=True
-        )
-    elif get_model_name() == "deepseek-coder-6.7b-instruct":  # noqa
-        system("unzip /dataset/deepseek-coder-6.7b-instruct.zip -d /dataset")
-        my_model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-            trust_remote_code=True)
-        my_tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
-            trust_remote_code=True
-        )
-    else:
-        raise RuntimeError("No chat model found.")
+    # if False:
+    #     my_model = AutoModelForCausalLM.from_pretrained(
+    #         pretrained_model_name_or_path=path_eval_finetune,
+    #         torch_dtype=torch.float16,
+    #         device_map="auto",
+    #         trust_remote_code=True
+    #     ).eval()
+    #     my_tokenizer = AutoTokenizer.from_pretrained(
+    #         pretrained_model_name_or_path=path_eval_finetune,
+    #         use_fast=False,
+    #         trust_remote_code=True
+    #     )
+    # elif get_model_name() == "deepseek-coder-6.7b-instruct":  # noqa
+    system("unzip /dataset/deepseek-coder-6.7b-instruct.zip -d /dataset")
+    my_model = AutoModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+        trust_remote_code=True)
+    my_tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path="/dataset/deepseek-coder-6.7b-instruct",  # noqa
+        trust_remote_code=True
+    )
+    # else:
+    #     raise RuntimeError("No chat model found.")
     return my_model, my_tokenizer
 
 
 def init_embeddings_model() -> Optional[SentenceTransformer]:
     """初始化嵌入模型"""
     return None
-    system("unzip /dataset/m3e-large.zip -d /dataset")
-    my_model = SentenceTransformer(
-        model_name_or_path="/dataset/m3e-large",
-        device="cuda"  # noqa
-    )
-    return my_model
+    # system("unzip /dataset/m3e-large.zip -d /dataset")
+    # my_model = SentenceTransformer(
+    #     model_name_or_path="/dataset/m3e-large",
+    #     device="cuda"  # noqa
+    # )
+    # return my_model
 
 
 # 加载反向代理
@@ -104,7 +104,7 @@ def chat(message):
         input_ids = input_ids[:, -4096:]
     input_ids = input_ids.to(model.device)
 
-    streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+    streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)  # noqa
     generate_kwargs = dict(
         {"input_ids": input_ids},
         streamer=streamer,
@@ -271,12 +271,13 @@ def embeddings_token_num(text: str) -> int:
     return len(get_encoding(encoding_name="cl100k_base").encode(text=text))
 
 
+# 接口服务均采用线程启动，避免阻塞
+Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
+
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
 if __name__ == "__main__":
     # 正式环境启动方法
-    api.run(host=appHost, port=appPort, debug=False)
     demo.launch()
 else:
     # AI协作平台启动方法
-    Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
     app = gr.mount_gradio_app(app=FastAPI(), blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
