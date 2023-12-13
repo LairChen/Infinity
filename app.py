@@ -1,5 +1,5 @@
 from json import dumps
-from os import getenv, system
+from os import getenv, listdir, system
 from threading import Thread
 from typing import Dict, List, Union, Tuple, Optional
 
@@ -12,7 +12,7 @@ from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import PolynomialFeatures
 from tiktoken import get_encoding
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils import *
 
@@ -23,7 +23,7 @@ from utils import *
 # model模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
-def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
+def init_model_and_tokenizer() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """初始化模型和词表"""
     my_model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=path_eval_finetune,
@@ -41,7 +41,14 @@ def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
 
 def init_embeddings_model() -> Optional[SentenceTransformer]:
     """初始化嵌入模型"""
-    system("unzip /dataset/m3e-large.zip -d /dataset")
+    for filename in listdir(path_eval_pretrain):
+        modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
+        if modelname is not None:
+            my_model_name = modelname.groups()[0]
+            break
+    else:
+        return None
+    system("unzip {}/{}.zip -d {}".format(path_eval_pretrain, my_model_name, path_eval_pretrain))
     my_model = SentenceTransformer(
         model_name_or_path="/dataset/m3e-large",
         device="cuda"  # noqa
@@ -73,8 +80,8 @@ def init_frp() -> None:
 
 
 api = init_api()
-init_frp()
 Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
+init_frp()
 
 
 @api.route(rule="/", methods=["GET"])
@@ -93,6 +100,8 @@ def chat_completions() -> Response:
 @api.route(rule="/v1/embeddings", methods=["POST"])
 def embeddings() -> str:
     """Embeddings接口"""
+    if embeddings_model is None:
+        return ""
     req = EmbeddingsRequestSchema().load(request.json)
     result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
     # OpenAI API 嵌入维度标准1536
@@ -116,8 +125,8 @@ def chat_stream(req: Dict):
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
     # 多轮对话，流式输出
-    # flask使用字符式
-    for answer in model.chat(tokenizer, req["messages"], stream=True):
+    # 接口使用字符式
+    for answer in model.chat(tokenizer, req["messages"], stream=True):  # noqa
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
         content = answer[position:]
@@ -164,8 +173,8 @@ def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, s
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
     # 多轮对话，流式输出
-    # gradio使用段落式
-    for answer in model.chat(tokenizer, history, stream=True):
+    # 页面使用段落式
+    for answer in model.chat(tokenizer, history, stream=True):  # noqa
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
