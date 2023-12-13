@@ -1,7 +1,6 @@
 from json import load
 from os import system, listdir, mkdir
 from re import match
-from time import sleep
 
 from utils import *
 
@@ -47,17 +46,19 @@ cmd_train = "deepspeed core/train.py " \
             "--bf16 True " \
             "--tf32 False " \
             "--use_lora True"
+
 cmd_merge = "python core/merge.py " \
             f"--input {path_train_pretrain} " \
             f"--output {path_train_finetune} " \
             f"--model {get_model_name()}"
+
 cmd_predict = "python core/predict.py " \
               f"--model {path_train_finetune}"
 
 if __name__ == "__main__":
+    with open(file=f"{path_train_finetune}/model_type.txt", mode="w+", encoding="utf-8") as f:
+        f.write(get_model_name())  # 写入基座模型类型
     mkdir(f"{path_train_pretrain}/tune")  # 创建模型微调的临时路径
     system(cmd_train)  # 模型微调
-    sleep(10)
     system(cmd_merge)  # 合并微调参数和词表
-    sleep(10)
     system(cmd_predict)  # 模型预测
