@@ -18,7 +18,9 @@ from utils import *
 
 
 # STEP1.加载模型
-# 包括对话模型和嵌入模型，其中对话模型从model走，嵌入模型从dataset走
+# 包括对话模型和嵌入模型，其中对话模型从model获取，嵌入模型从dataset获取
+# 对话模型必须，嵌入模型可选
+# model模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
 def init_model_and_tokenizer() -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
@@ -85,7 +87,7 @@ def homepage():
 def chat_completions() -> Response:
     """Chat接口"""
     req = ChatRequestSchema().load(request.json)
-    return current_app.response_class(response=chat_stream(chat_dict=req), mimetype="text/event-stream")
+    return current_app.response_class(response=chat_stream(req=req), mimetype="text/event-stream")
 
 
 @api.route(rule="/v1/embeddings", methods=["POST"])
@@ -106,16 +108,16 @@ def embeddings() -> str:
 
 
 @stream_with_context
-def chat_stream(chat_dict: Dict):
+def chat_stream(req: Dict):
     """流式输出模型回答"""
     index = 0
     position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
-    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
     # 多轮对话，流式输出
     # flask使用字符式
-    for answer in model.chat(tokenizer, chat_dict["messages"], stream=True):
+    for answer in model.chat(tokenizer, req["messages"], stream=True):
         if torch.backends.mps.is_available():  # noqa
             torch.mps.empty_cache()  # noqa
         content = answer[position:]
@@ -123,13 +125,13 @@ def chat_stream(chat_dict: Dict):
             continue
         delta = ChatDeltaSchema().dump({"content": content})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+        yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
-        if position > outputLength:
+        if position > contentLength:
             break
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_dict["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
     yield chat_sse(line="[DONE]")
 
 
@@ -168,7 +170,7 @@ def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, s
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
         yield chatbot
-        if len(answer) > outputLength:
+        if len(answer) > contentLength:
             break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
@@ -212,7 +214,6 @@ def init_demo() -> gr.Blocks:
     return my_demo
 
 
-# 加载页面服务
 demo = init_demo()
 # 正式环境启动方法
 if __name__ == "__main__":
