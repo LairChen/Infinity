@@ -91,33 +91,21 @@ def homepage():
 
 
 @api.route(rule="/v1/chat/completions", methods=["POST"])
-def chat_completions() -> Response:
+def chat() -> Response:
     """Chat接口"""
     req = ChatRequestSchema().load(request.json)
-    return current_app.response_class(response=chat_stream(req=req), mimetype="text/event-stream")
+    return current_app.response_class(response=chat_result(req=req), mimetype="text/event-stream")
 
 
 @api.route(rule="/v1/embeddings", methods=["POST"])
 def embeddings() -> str:
     """Embeddings接口"""
-    if embeddings_model is None:
-        return ""
     req = EmbeddingsRequestSchema().load(request.json)
-    result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
-    # OpenAI API 嵌入维度标准1536
-    result = [embeddings_pad(embedding=embedding, target_length=embeddingLength)
-              if len(embedding) < embeddingLength else embedding for embedding in result]
-    result = [embedding / np.linalg.norm(x=embedding) for embedding in result]
-    result = [embedding.tolist() for embedding in result]
-    prompt_tokens = sum(len(text.split()) for text in req["input"])
-    total_tokens = sum(embeddings_token_num(text=text) for text in req["input"])
-    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(result)]
-    usage = {"prompt_tokens": prompt_tokens, "total_tokens": total_tokens}
-    return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
+    return embeddings_result(req=req)
 
 
 @stream_with_context
-def chat_stream(req: Dict):
+def chat_result(req: Dict):
     """流式输出模型回答"""
     index = 0
     position = 0
@@ -149,10 +137,26 @@ def chat_sse(line: Union[str, Dict]) -> str:
     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
+def embeddings_result(req: Dict) -> str:
+    """计算嵌入结果"""
+    if embeddings_model is None:
+        return ""
+    result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
+    # OpenAI API 嵌入维度标准1536
+    result = [embeddings_pad(embedding=embedding, target_length=embeddingLength)
+              if len(embedding) < embeddingLength else embedding for embedding in result]
+    result = [embedding / np.linalg.norm(x=embedding) for embedding in result]
+    result = [embedding.tolist() for embedding in result]
+    prompt_tokens = sum(len(text.split()) for text in req["input"])
+    total_tokens = sum(embeddings_token_num(text=text) for text in req["input"])
+    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(result)]
+    usage = {"prompt_tokens": prompt_tokens, "total_tokens": total_tokens}
+    return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
+
+
 def embeddings_pad(embedding: np.ndarray, target_length: int) -> np.ndarray:
     """按照指定维度对嵌入向量进行扩缩"""
-    embedding = PolynomialFeatures(degree=2).fit_transform(X=embedding.reshape(1, -1))
-    embedding = embedding.flatten()
+    embedding = PolynomialFeatures(degree=2).fit_transform(X=embedding.reshape(1, -1)).flatten()
     # 维度小填充，维度大截断
     if len(embedding) < target_length:
         return np.pad(array=embedding, pad_width=(0, target_length - len(embedding)))
