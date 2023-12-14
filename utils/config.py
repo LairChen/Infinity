@@ -5,8 +5,6 @@ cfg.read(filenames="conf/config.ini", encoding="utf-8")
 
 appHost = cfg.get(section="app", option="app.host")
 appPort = cfg.getint(section="app", option="app.port")
-contentLength = cfg.getint(section="app", option="app.content.length")
-embeddingLength = cfg.getint(section="app", option="app.embedding.length")
 
 path_train_pretrain = cfg.get(section="path", option="path.train.pretrain")  # noqa
 path_train_finetune = cfg.get(section="path", option="path.train.finetune")  # noqa
