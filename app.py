@@ -1,5 +1,6 @@
 from json import dumps
 from os import getenv, listdir, system
+from re import match
 from threading import Thread
 from typing import Dict, List, Union, Tuple, Optional
 
@@ -125,7 +126,7 @@ def chat_result(req: Dict):
         yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
-        if position > contentLength:
+        if position > 4096:
             break
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
     yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
@@ -143,8 +144,8 @@ def embeddings_result(req: Dict) -> str:
         return ""
     result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
     # OpenAI API 嵌入维度标准1536
-    result = [embeddings_pad(embedding=embedding, target_length=embeddingLength)
-              if len(embedding) < embeddingLength else embedding for embedding in result]
+    result = [embeddings_pad(embedding=embedding, target_length=1536)
+              if len(embedding) < 1536 else embedding for embedding in result]
     result = [embedding / np.linalg.norm(x=embedding) for embedding in result]
     result = [embedding.tolist() for embedding in result]
     prompt_tokens = sum(len(text.split()) for text in req["input"])
@@ -183,7 +184,7 @@ def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, s
             torch.mps.empty_cache()  # noqa
         chatbot[-1][1] = answer
         yield chatbot
-        if len(answer) > contentLength:
+        if len(answer) > 4096:
             break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
