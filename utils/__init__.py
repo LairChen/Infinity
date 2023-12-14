@@ -2,7 +2,7 @@ from .config import *
 from .model import *
 from .schema import *
 
-model_type_dict = {
+MODEL_TYPE_DICT = {
     "Baichuan2-7B-Chat": BaichuanModel,  # noqa
     "Baichuan2-13B-Chat": BaichuanModel,  # noqa
     "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
