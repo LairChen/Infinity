@@ -2,18 +2,16 @@ from json import dumps
 from os import getenv, listdir, system
 from re import match
 from threading import Thread
-from typing import Dict, List, Union, Tuple, Optional
+from typing import Union, Optional
 
 import gradio as gr
 import numpy as np
-import torch
 from fastapi import FastAPI
-from flask import Flask, Response, request, current_app, render_template, stream_with_context
+from flask import Flask, Response, current_app, jsonify, render_template, request, stream_with_context
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import PolynomialFeatures
 from tiktoken import get_encoding
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils import *
 
@@ -24,20 +22,12 @@ from utils import *
 # model模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
-def init_model_and_tokenizer() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
+def init_chat_model() -> BaseModel:
     """初始化模型和词表"""
-    my_model = AutoModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path=path_eval_finetune,
-        torch_dtype=torch.float16,
-        device_map="auto",
-        trust_remote_code=True
-    ).eval()
-    my_tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=path_eval_finetune,
-        use_fast=False,
-        trust_remote_code=True
-    )
-    return my_model, my_tokenizer
+    with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
+        my_model_name = f.read()
+    my_model = BaichuanModel(name=my_model_name, path=path_eval_finetune)
+    return my_model
 
 
 def init_embeddings_model() -> Optional[SentenceTransformer]:
@@ -57,7 +47,7 @@ def init_embeddings_model() -> Optional[SentenceTransformer]:
     return my_model
 
 
-model, tokenizer = init_model_and_tokenizer()
+chat_model = init_chat_model()
 embeddings_model = init_embeddings_model()
 
 
@@ -68,25 +58,19 @@ embeddings_model = init_embeddings_model()
 
 def init_api() -> Flask:
     """创建接口服务"""
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
     my_api = Flask(import_name=__name__)  # 声明主服务
     CORS(app=my_api)  # 允许跨域
     return my_api
 
 
-def init_frp() -> None:
-    """初始化frp客户端"""
-    system("chmod +x frpc/frpc")  # noqa
-    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
-    return
-
-
 api = init_api()
 Thread(target=api.run, kwargs={"host": appHost, "port": appPort, "debug": False}).start()
-init_frp()
 
 
 @api.route(rule="/", methods=["GET"])
-def homepage():
+def homepage() -> str:
     """接口服务首页"""
     return render_template(template_name_or_list="Infinity.html")  # noqa
 
@@ -99,10 +83,10 @@ def chat() -> Response:
 
 
 @api.route(rule="/v1/embeddings", methods=["POST"])
-def embeddings() -> str:
+def embeddings() -> Response:
     """Embeddings接口"""
     req = EmbeddingsRequestSchema().load(request.json)
-    return embeddings_result(req=req)
+    return jsonify(embeddings_result(req=req))
 
 
 @stream_with_context
@@ -115,19 +99,13 @@ def chat_result(req: Dict):
     yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
     # 多轮对话，流式输出
     # 接口使用字符式
-    for answer in model.chat(tokenizer, req["messages"], stream=True):  # noqa
-        if torch.backends.mps.is_available():  # noqa
-            torch.mps.empty_cache()  # noqa
+    for answer in chat_model.stream(conversation=req["messages"]):
         content = answer[position:]
-        if not content:
-            continue
         delta = ChatDeltaSchema().dump({"content": content})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
         yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
-        if position > 4096:
-            break
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
     yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
     yield chat_sse(line="[DONE]")
@@ -138,10 +116,10 @@ def chat_sse(line: Union[str, Dict]) -> str:
     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
-def embeddings_result(req: Dict) -> str:
+def embeddings_result(req: Dict) -> Dict:
     """计算嵌入结果"""
     if embeddings_model is None:
-        return ""
+        return {}
     result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
     # OpenAI API 嵌入维度标准1536
     result = [embeddings_pad(embedding=embedding, target_length=1536)
@@ -173,19 +151,15 @@ def embeddings_token_num(text: str) -> int:
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
 
 
-def get_answer(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
+def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
     """模型回答并更新聊天窗口"""
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
     # 多轮对话，流式输出
     # 页面使用段落式
-    for answer in model.chat(tokenizer, history, stream=True):  # noqa
-        if torch.backends.mps.is_available():  # noqa
-            torch.mps.empty_cache()  # noqa
+    for answer in chat_model.stream(conversation=history):
         chatbot[-1][1] = answer
         yield chatbot
-        if len(answer) > 4096:
-            break
     history.append({"role": "assistant", "content": chatbot[-1][1]})
 
 
@@ -217,13 +191,13 @@ def init_demo() -> gr.Blocks:
         history = gr.State(value=[])
         with gr.Row():
             btnSubmit = gr.Button("Submit 🚀")
-            btnClear = gr.Button("Clear 🧹")
+            btnClean = gr.Button("Clean 🧹")
         gr.Markdown(value="<center><font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                           "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠</center>")
         # 功能区
-        btnSubmit.click(fn=get_answer, inputs=[chatbot, textbox, history], outputs=[chatbot])
+        btnSubmit.click(fn=refresh_chatbot_and_history, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
-        btnClear.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
+        btnClean.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
     my_demo.queue()
     return my_demo
 
