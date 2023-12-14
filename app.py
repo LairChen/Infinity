@@ -26,7 +26,7 @@ def init_chat_model() -> BaseModel:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read()
-    my_model = BaichuanModel(name=my_model_name, path=path_eval_finetune)
+    my_model = MODEL_TYPE_DICT[my_model_name](name=my_model_name, path=path_eval_finetune)
     return my_model
 
 
@@ -97,8 +97,7 @@ def chat_result(req: Dict):
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
-    # 多轮对话，流式输出
-    # 接口使用字符式
+    # 多轮对话，字符型流式输出
     for answer in chat_model.stream(conversation=req["messages"]):
         content = answer[position:]
         delta = ChatDeltaSchema().dump({"content": content})
@@ -155,8 +154,7 @@ def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history:
     """模型回答并更新聊天窗口"""
     chatbot.append([textbox, ""])
     history.append({"role": "user", "content": textbox})
-    # 多轮对话，流式输出
-    # 页面使用段落式
+    # 多轮对话，段落型流式输出
     for answer in chat_model.stream(conversation=history):
         chatbot[-1][1] = answer
         yield chatbot
