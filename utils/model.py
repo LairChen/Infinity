@@ -2,7 +2,10 @@ from abc import ABC
 from threading import Thread
 from typing import Dict, List
 
+import numpy as np
 import torch
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import PolynomialFeatures
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
 # 模型常量
@@ -30,7 +33,7 @@ class BaseModel(object):
         """流式生成模型答复，使用para模式"""
         raise NotImplementedError("method: stream")
 
-    def embedding(self, content: str):
+    def embedding(self, sentence: List[str]) -> List[List[float]]:
         """生成模型嵌入结果"""
         raise NotImplementedError("method: embedding")
 
@@ -107,5 +110,24 @@ class DeepseekModel(BaseModel, ABC):  # noqa
 class M3eModel(BaseModel, ABC):
     """class for m3e"""
 
-    def __init__(self):
+    def __init__(self, name: str, path: str):
         super().__init__()
+        self.name = name
+        self.model = SentenceTransformer(
+            model_name_or_path=path,
+            device="cuda"  # noqa
+        )
+
+    def embedding(self, sentence: str) -> List[float]:
+        result = self.model.encode(sentences=sentence)
+        # OpenAI API 嵌入维度标准1536
+        if len(result) < MAX_EMBEDDING_LENGTH:
+            result = PolynomialFeatures(degree=2).fit_transform(X=result.reshape(1, -1)).flatten()
+            if len(result) < MAX_EMBEDDING_LENGTH:
+                result = np.pad(array=result, pad_width=(0, MAX_EMBEDDING_LENGTH - len(result)))
+            else:
+                result = result[:MAX_EMBEDDING_LENGTH]
+        else:
+            result = result[:MAX_EMBEDDING_LENGTH]
+        result = result / np.linalg.norm(x=result)
+        return result.tolist()
