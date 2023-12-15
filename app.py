@@ -1,23 +1,19 @@
 from json import dumps
 from os import getenv, listdir, system
 from re import match
-from threading import Thread
 from typing import Union, Optional
 
 import gradio as gr
-import numpy as np
 from fastapi import FastAPI
 from flask import Flask, Response, current_app, jsonify, render_template, request, stream_with_context
 from flask_cors import CORS
-from sentence_transformers import SentenceTransformer
-from sklearn.preprocessing import PolynomialFeatures
 from tiktoken import get_encoding
 
 from utils import *
 
 
 # STEP1.加载模型
-# 包括对话模型和嵌入模型，其中对话模型从model获取，嵌入模型从dataset获取
+# 包括对话模型和嵌入模型，其中对话模型从pretrainmodel获取，嵌入模型从dataset获取
 # 对话模型必须，嵌入模型可选
 # model模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
@@ -30,7 +26,7 @@ def init_chat_model() -> BaseModel:
     return my_model
 
 
-def init_embeddings_model() -> Optional[SentenceTransformer]:
+def init_embeddings_model() -> Optional[BaseModel]:
     """初始化嵌入模型"""
     for filename in listdir(path_eval_pretrain):
         modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
@@ -39,11 +35,7 @@ def init_embeddings_model() -> Optional[SentenceTransformer]:
             break
     else:
         return None
-    system("unzip {}/{}.zip -d {}".format(path_eval_pretrain, my_model_name, path_eval_pretrain))
-    my_model = SentenceTransformer(
-        model_name_or_path="/dataset/m3e-large",
-        device="cuda"  # noqa
-    )
+    my_model = MODEL_TYPE_DICT[my_model_name](name=my_model_name, path=my_model_name)
     return my_model
 
 
@@ -96,17 +88,16 @@ def chat_result(req: Dict):
     position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
-    yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
     # 多轮对话，字符型流式输出
     for answer in chat_model.stream(conversation=req["messages"]):
-        content = answer[position:]
-        delta = ChatDeltaSchema().dump({"content": content})
+        delta = ChatDeltaSchema().dump({"content": answer[position:]})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
+        yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
         index += 1
         position = len(answer)
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield chat_sse(line=ChatResponseSchema().dump({"model": req["model"], "choices": [choice]}))  # noqa
+    yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
     yield chat_sse(line="[DONE]")
 
 
@@ -117,28 +108,13 @@ def chat_sse(line: Union[str, Dict]) -> str:
 
 def embeddings_result(req: Dict) -> Dict:
     """计算嵌入结果"""
-    if embeddings_model is None:
-        return {}
-    result = [embeddings_model.encode(sentences=sentence) for sentence in req["input"]]
-    # OpenAI API 嵌入维度标准1536
-    result = [embeddings_pad(embedding=embedding, target_length=1536)
-              if len(embedding) < 1536 else embedding for embedding in result]
-    result = [embedding / np.linalg.norm(x=embedding) for embedding in result]
-    result = [embedding.tolist() for embedding in result]
-    prompt_tokens = sum(len(text.split()) for text in req["input"])
-    total_tokens = sum(embeddings_token_num(text=text) for text in req["input"])
-    data = [{"index": index, "embedding": embedding} for index, embedding in enumerate(result)]
-    usage = {"prompt_tokens": prompt_tokens, "total_tokens": total_tokens}
+    data = [{"index": index, "embedding": [] if embeddings_model is None else embeddings_model.embedding(sentence=text)}
+            for index, text in req["input"]]
+    usage = {
+        "prompt_tokens": sum(len(text.split()) for text in req["input"]),
+        "total_tokens": sum(embeddings_token_num(text=text) for text in req["input"])
+    }
     return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
-
-
-def embeddings_pad(embedding: np.ndarray, target_length: int) -> np.ndarray:
-    """按照指定维度对嵌入向量进行扩缩"""
-    embedding = PolynomialFeatures(degree=2).fit_transform(X=embedding.reshape(1, -1)).flatten()
-    # 维度小填充，维度大截断
-    if len(embedding) < target_length:
-        return np.pad(array=embedding, pad_width=(0, target_length - len(embedding)))
-    return embedding[:target_length]
 
 
 def embeddings_token_num(text: str) -> int:
@@ -203,7 +179,7 @@ def init_demo() -> gr.Blocks:
 demo = init_demo()
 # 正式环境启动方法
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
 # AI协作平台启动方法
 else:
     app = gr.mount_gradio_app(app=FastAPI(), blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
