@@ -12,13 +12,19 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 
 * Baichuan2-7B-Chat
 * Baichuan2-13B-Chat
+* deepseek-coder-1.3b-instruct
 * deepseek-coder-6.7b-instruct
+* deepseek-coder-33b-instruct
+* m3e-base
+* m3e-small
 * m3e-large
 
 ### Work Station
 
 **debug mode**: Schedule daily task to obtain computing power points.
+
 **train mode**: Based on your own business data, tune and save the large language model.
+
 **online infer mode**: Use Gradio and Flask to offer an online prediction stage.
 
 ***
