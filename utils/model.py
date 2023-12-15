@@ -25,7 +25,7 @@ class BaseModel(object):
         """模型微调"""
         raise NotImplementedError("method: train")
 
-    def generate(self):
+    def generate(self, conversation: List[Dict[str, str]]) -> str:
         """生成模型答复文本"""
         raise NotImplementedError("method: generate")
 
@@ -55,6 +55,9 @@ class BaichuanModel(BaseModel, ABC):  # noqa
             use_fast=False,
             trust_remote_code=True
         )
+
+    def generate(self, conversation: List[Dict[str, str]]) -> str:
+        return self.model.chat(self.tokenizer, conversation)
 
     def stream(self, conversation: List[Dict[str, str]]):
         for answer in self.model.chat(self.tokenizer, conversation, stream=True):
