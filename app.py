@@ -172,7 +172,7 @@ def init_demo() -> gr.Blocks:
         btnSubmit.click(fn=refresh_chatbot_and_history, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
         btnClean.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
-    # my_demo.queue()
+    my_demo.queue()
     return my_demo
 
 
