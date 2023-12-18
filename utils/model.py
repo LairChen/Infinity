@@ -10,7 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStream
 
 # 模型常量
 MAX_CONTENT_LENGTH = 4096
-MAX_EMBEDDING_LENGTH = 1536
+MAX_EMBEDDING_LENGTH = 1536  # OpenAI API 嵌入维度标准 1536
 
 
 class BaseModel(object):
@@ -81,14 +81,12 @@ class DeepseekModel(BaseModel, ABC):  # noqa
             trust_remote_code=True)
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=path,
+            use_fast=False,
             trust_remote_code=True
         )
 
     def stream(self, conversation: List[Dict[str, str]]):
-        input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt")
-        if input_ids.shape[1] > MAX_CONTENT_LENGTH:
-            input_ids = input_ids[:, -MAX_CONTENT_LENGTH:]
-        input_ids = input_ids.to(self.model.device)
+        input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
         streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
         generate_kwargs = {
             "input_ids": input_ids,
@@ -110,20 +108,63 @@ class DeepseekModel(BaseModel, ABC):  # noqa
             yield answer
 
 
+class DeepseekGPTQModel(BaseModel, ABC):  # noqa
+    """class for deepseek GPTQ"""
+
+    def __init__(self, name: str, path: str):
+        super().__init__()
+        self.name = name
+        self.model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=path,
+            use_fast=False,
+            trust_remote_code=True
+        )
+
+    def stream(self, conversation: List[Dict[str, str]]):
+        template = "You are an AI programming assistant, utilizing the Deepseek Coder model, developed by Deepseek Company, " \
+                   "and you only answer questions related to computer science. " \
+                   "For politically sensitive questions, security and privacy issues, and other non-computer science questions, " \
+                   "you will refuse to answer.\n" \
+                   "### Instruction:\n" \
+                   f"{conversation[-1]['content']}\n" \
+                   "### Response:\n"
+        input_ids = self.tokenizer(template, return_tensors="pt").input_ids.to(self.model.device)
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+        generate_kwargs = {
+            "input_ids": input_ids,
+            "streamer": streamer,
+            "do_sample": False,
+            "max_new_tokens": 1024,
+            "num_beams": 1,
+            "repetition_penalty": 1,
+            "eos_token_id": 32021
+        }
+        Thread(target=self.model.generate, kwargs=generate_kwargs).start()
+        answer = ""
+        for text in streamer:
+            answer += text.replace("<|EOT|>", "")
+            if torch.backends.mps.is_available():  # noqa
+                torch.mps.empty_cache()  # noqa
+            if len(answer) >= MAX_CONTENT_LENGTH:
+                break
+
+
 class M3eModel(BaseModel, ABC):
     """class for m3e"""
 
     def __init__(self, name: str, path: str):
         super().__init__()
         self.name = name
-        self.model = SentenceTransformer(
-            model_name_or_path=path,
-            device="cuda"  # noqa
-        )
+        self.model = SentenceTransformer(model_name_or_path=path)
 
     def embedding(self, sentence: str) -> List[float]:
         result = self.model.encode(sentences=sentence)
-        # OpenAI API 嵌入维度标准1536
         if len(result) < MAX_EMBEDDING_LENGTH:
             result = PolynomialFeatures(degree=2).fit_transform(X=result.reshape(1, -1)).flatten()
             if len(result) < MAX_EMBEDDING_LENGTH:
