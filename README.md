@@ -15,6 +15,7 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * deepseek-coder-1.3b-instruct
 * deepseek-coder-6.7b-instruct
 * deepseek-coder-33b-instruct
+* deepseek-coder-33B-instruct-GPTQ
 * m3e-base
 * m3e-small
 * m3e-large
