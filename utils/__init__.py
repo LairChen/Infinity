@@ -5,7 +5,12 @@ from .schema import *
 MODEL_TYPE_DICT = {
     "Baichuan2-7B-Chat": BaichuanModel,  # noqa
     "Baichuan2-13B-Chat": BaichuanModel,  # noqa
+    "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
+    "deepseek-coder-33b-instruct": DeepseekModel,  # noqa
+    "deepseek-coder-33B-instruct-GPTQ": DeepseekGPTQModel,  # noqa
+    "m3e-base": M3eModel,
+    "m3e-small": M3eModel,
     "m3e-large": M3eModel
 }
 
