@@ -153,6 +153,7 @@ class DeepseekGPTQModel(BaseModel, ABC):  # noqa
                 torch.mps.empty_cache()  # noqa
             if len(answer) >= MAX_CONTENT_LENGTH:
                 break
+            yield answer
 
 
 class M3eModel(BaseModel, ABC):
