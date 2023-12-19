@@ -179,7 +179,7 @@ def init_demo() -> gr.Blocks:
 demo = init_demo()
 # 正式环境启动方法
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch()
 # AI协作平台启动方法
 else:
     app = gr.mount_gradio_app(app=FastAPI(), blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
