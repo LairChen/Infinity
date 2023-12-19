@@ -18,15 +18,15 @@ from utils import *
 # model模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
-def init_chat_model() -> BaseModel:
+def init_chat_model() -> BaseChatModel:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read()
-    my_model = MODEL_TYPE_DICT[my_model_name](name=my_model_name, path=path_eval_finetune)
+    my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
     return my_model
 
 
-def init_embeddings_model() -> Optional[BaseModel]:
+def init_embeddings_model() -> Optional[BaseEmbeddingsModel]:
     """初始化嵌入模型"""
     for filename in listdir(path_eval_pretrain):
         modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
@@ -35,7 +35,7 @@ def init_embeddings_model() -> Optional[BaseModel]:
             break
     else:
         return None
-    my_model = MODEL_TYPE_DICT[my_model_name](name=my_model_name, path=my_model_name)
+    my_model = EMBEDDINGS_MODEL_TYPE[my_model_name](name=my_model_name, path=my_model_name)
     return my_model
 
 
@@ -85,17 +85,15 @@ def embeddings() -> Response:
 def chat_result(req: Dict):
     """流式输出模型回答"""
     index = 0
-    position = 0
     delta = ChatDeltaSchema().dump({"role": "assistant"})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
     # 多轮对话，字符型流式输出
     for answer in chat_model.stream(conversation=req["messages"]):
-        delta = ChatDeltaSchema().dump({"content": answer[position:]})
+        delta = ChatDeltaSchema().dump({"content": answer})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
         yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
         index += 1
-        position = len(answer)
     choice = ChatChoiceSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
     yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
     yield chat_sse(line="[DONE]")
@@ -126,15 +124,14 @@ def embeddings_token_num(text: str) -> int:
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
 
 
-def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]):  # noqa
+def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]) -> List[List[str]]:  # noqa
     """模型回答并更新聊天窗口"""
-    chatbot.append([textbox, ""])
+    answer = chat_model.generate(conversation=history)
+    # 多轮对话，文本输出
+    chatbot.append([textbox, answer])
     history.append({"role": "user", "content": textbox})
-    # 多轮对话，段落型流式输出
-    for answer in chat_model.stream(conversation=history):
-        chatbot[-1][1] = answer
-        yield chatbot
-    history.append({"role": "assistant", "content": chatbot[-1][1]})
+    history.append({"role": "assistant", "content": answer})
+    return chatbot
 
 
 def clear_textbox() -> Dict:
@@ -172,7 +169,6 @@ def init_demo() -> gr.Blocks:
         btnSubmit.click(fn=refresh_chatbot_and_history, inputs=[chatbot, textbox, history], outputs=[chatbot])
         btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
         btnClean.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
-    my_demo.queue()
     return my_demo
 
 
