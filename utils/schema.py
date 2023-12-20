@@ -13,19 +13,6 @@ class ChatMessageSchema(Schema):
     content = fields.Str(required=True)
 
 
-class ChatDeltaSchema(Schema):
-    """Chat流式结构映射"""
-    role = fields.Str()
-    content = fields.Str()
-
-
-class ChatChoiceSchema(Schema):
-    """Chat流式消息选择器"""
-    index = fields.Int(load_default=0)
-    delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
-    finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
-
-
 class ChatRequestSchema(Schema):
     """Chat接口请求数据结构解析"""
     model = fields.Str(required=True)  # noqa
@@ -40,6 +27,19 @@ class ChatRequestSchema(Schema):
     frequency_penalty = fields.Float(load_default=0.0)
 
 
+class ChatDeltaSchema(Schema):
+    """Chat流式结构映射"""
+    role = fields.Str(required=True)
+    content = fields.Str(required=True)
+
+
+class ChatChoiceSchema(Schema):
+    """Chat流式消息选择器"""
+    index = fields.Int(required=True)
+    delta = fields.Nested(nested=ChatDeltaSchema)  # noqa
+    finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
+
+
 class ChatResponseSchema(Schema):
     """Chat接口响应数据结构映射"""
     id = fields.Str(dump_default=lambda: uuid4().hex)
@@ -49,9 +49,15 @@ class ChatResponseSchema(Schema):
     object = fields.Constant(constant="chat.completions")
 
 
+class EmbeddingsRequestSchema(Schema):
+    """Embeddings接口请求数据结构解析"""
+    model = fields.Str(required=True)  # noqa
+    input = fields.List(fields.Str, required=True)  # noqa
+
+
 class EmbeddingsDataSchema(Schema):
     """Embeddings结果数据"""
-    index = fields.Int(load_default=0)
+    index = fields.Int(required=True)
     embedding = fields.List(fields.Float, required=True)  # noqa
     object = fields.Constant(constant="embedding")
 
@@ -60,12 +66,6 @@ class EmbeddingsUsageSchema(Schema):
     """Embeddings用量数据"""
     prompt_tokens = fields.Int(required=True)
     total_tokens = fields.Int(required=True)
-
-
-class EmbeddingsRequestSchema(Schema):
-    """Embeddings接口请求数据结构解析"""
-    model = fields.Str(required=True)  # noqa
-    input = fields.List(fields.Str, required=True)  # noqa
 
 
 class EmbeddingsResponseSchema(Schema):
