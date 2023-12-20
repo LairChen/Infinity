@@ -85,12 +85,12 @@ def embeddings() -> Response:
 def chat_result(req: Dict):
     """流式输出模型回答"""
     index = 0
-    delta = ChatDeltaSchema().dump({"role": "assistant"})
+    delta = ChatDeltaSchema().dump({"role": "assistant", "content": ""})
     choice = ChatChoiceSchema().dump({"index": 0, "delta": delta, "finish_reason": None})
     yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
     # 多轮对话，字符型流式输出
     for answer in chat_model.stream(conversation=req["messages"]):
-        delta = ChatDeltaSchema().dump({"content": answer})
+        delta = ChatDeltaSchema().dump({"role": "assistant", "content": answer})
         choice = ChatChoiceSchema().dump({"index": index, "delta": delta, "finish_reason": None})
         yield chat_sse(line=ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]}))  # noqa
         index += 1
@@ -106,13 +106,14 @@ def chat_sse(line: Union[str, Dict]) -> str:
 
 def embeddings_result(req: Dict) -> Dict:
     """计算嵌入结果"""
-    data = [{"index": index, "embedding": [] if embeddings_model is None else embeddings_model.embedding(sentence=text)}
+    data = [{"index": index, "embedding": embeddings_model.embedding(sentence=text) if embeddings_model is not None else []}
             for index, text in req["input"]]
     usage = {
         "prompt_tokens": sum(len(text.split()) for text in req["input"]),
         "total_tokens": sum(embeddings_token_num(text=text) for text in req["input"])
     }
-    return EmbeddingsResponseSchema().dump({"model": req["model"], "data": data, "usage": usage})
+    return EmbeddingsResponseSchema().dump({
+        "model": embeddings_model.name if embeddings_model is not None else "", "data": data, "usage": usage})
 
 
 def embeddings_token_num(text: str) -> int:
