@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+from auto_gptq import exllama_set_max_input_length
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import PolynomialFeatures
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
@@ -58,12 +59,13 @@ class BaichuanModel(BaseChatModel):  # noqa
             torch_dtype=torch.float16,
             device_map="auto",
             trust_remote_code=True
-        ).eval()
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=path,
             use_fast=False,
             trust_remote_code=True
         )
+        self.model = self.model.eval()
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         return self.model.chat(self.tokenizer, conversation)
@@ -84,83 +86,35 @@ class DeepseekModel(BaseChatModel):  # noqa
         super(DeepseekModel, self).__init__(name=name)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
             device_map="auto",
-            trust_remote_code=True)
+            trust_remote_code=True
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=path,
             use_fast=False,
             trust_remote_code=True
         )
+        # GPTQ量化模型需要额外扩展输入文本的长度
+        if self.name.endswith("GPTQ"):  # noqa
+            self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
-        output_ids = self.model.generate(
-            inputs=input_ids, do_sample=False, max_new_tokens=1024, num_beans=1, repetition_penalty=1, eos_token_id=32021)
+        output_ids = self.model.generate(inputs=input_ids, do_sample=False, eos_token_id=32021, max_new_tokens=1024)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
         input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
-        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=5.0, skip_prompt=True, skip_special_tokens=True)
         generate_kwargs = {
             "input_ids": input_ids,
             "streamer": streamer,
             "do_sample": False,
+            "eos_token_id": 32021,
             "max_new_tokens": 1024,
             "num_beams": 1,
-            "repetition_penalty": 1,
-            "eos_token_id": 32021
-        }
-        Thread(target=self.model.generate, kwargs=generate_kwargs).start()
-        for text in streamer:
-            if torch.backends.mps.is_available():  # noqa
-                torch.mps.empty_cache()  # noqa
-            yield text.replace("<|EOT|>", "")
-
-
-class DeepseekGPTQModel(BaseChatModel):  # noqa
-    """class for deepseek GPTQ model"""
-
-    def __init__(self, name: str, path: str):
-        super(DeepseekGPTQModel, self).__init__(name=name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=path,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            trust_remote_code=True)
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=path,
-            use_fast=False,
-            trust_remote_code=True
-        )
-        self.tmpl = "You are an AI programming assistant, utilizing the Deepseek Coder model, developed by Deepseek Company, " \
-                    "and you only answer questions related to computer science. " \
-                    "For politically sensitive questions, security and privacy issues, and other non-computer science questions, " \
-                    "you will refuse to answer.\n" \
-                    "### Instruction:\n" \
-                    "{}\n" \
-                    "### Response:\n"
-
-    def generate(self, conversation: List[Dict[str, str]]) -> str:
-        input_ids = self.tokenizer(
-            self.tmpl.format(conversation[-1]["content"]), return_tensors="pt").input_ids.to(self.model.device)
-        output_ids = self.model.generate(
-            inputs=input_ids, do_sample=False, max_new_tokens=1024, num_beans=1, repetition_penalty=1, eos_token_id=32021)
-        return self.tokenizer.decode(token_ids=output_ids[0], skip_special_tokens=True)
-
-    def stream(self, conversation: List[Dict[str, str]]):
-        input_ids = self.tokenizer(
-            self.tmpl.format(conversation[-1]["content"]), return_tensors="pt").input_ids.to(self.model.device)
-        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
-        generate_kwargs = {
-            "input_ids": input_ids,
-            "streamer": streamer,
-            "do_sample": False,
-            "max_new_tokens": 1024,
-            "num_beams": 1,
-            "repetition_penalty": 1,
-            "eos_token_id": 32021
+            "repetition_penalty": 1
         }
         Thread(target=self.model.generate, kwargs=generate_kwargs).start()
         for text in streamer:
