@@ -107,7 +107,7 @@ def chat_sse(line: Union[str, Dict]) -> str:
 def embeddings_result(req: Dict) -> Dict:
     """计算嵌入结果"""
     data = [{"index": index, "embedding": embeddings_model.embedding(sentence=text) if embeddings_model is not None else []}
-            for index, text in req["input"]]
+            for index, text in enumerate(req["input"])]
     usage = {
         "prompt_tokens": sum(len(text.split()) for text in req["input"]),
         "total_tokens": sum(embeddings_token_num(text=text) for text in req["input"])
