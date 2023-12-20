@@ -126,11 +126,10 @@ def embeddings_token_num(text: str) -> int:
 
 def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]) -> List[List[str]]:  # noqa
     """模型回答并更新聊天窗口"""
-    answer = chat_model.generate(conversation=history)
-    # 多轮对话，文本输出
-    chatbot.append([textbox, answer])
     history.append({"role": "user", "content": textbox})
+    answer = chat_model.generate(conversation=history)  # 多轮对话，文本输出
     history.append({"role": "assistant", "content": answer})
+    chatbot.append([textbox, answer])
     return chatbot
 
 
