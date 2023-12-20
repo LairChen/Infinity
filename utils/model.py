@@ -144,14 +144,14 @@ class DeepseekGPTQModel(BaseChatModel):  # noqa
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer(
-            self.tmpl.format(conversation[-1]['content']), return_tensors="pt").input_ids.to(self.model.device)
+            self.tmpl.format(conversation[-1]["content"]), return_tensors="pt").input_ids.to(self.model.device)
         output_ids = self.model.generate(
             inputs=input_ids, do_sample=False, max_new_tokens=1024, num_beans=1, repetition_penalty=1, eos_token_id=32021)
         return self.tokenizer.decode(token_ids=output_ids[0], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
         input_ids = self.tokenizer(
-            self.tmpl.format(conversation[-1]['content']), return_tensors="pt").input_ids.to(self.model.device)
+            self.tmpl.format(conversation[-1]["content"]), return_tensors="pt").input_ids.to(self.model.device)
         streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
         generate_kwargs = {
             "input_ids": input_ids,
