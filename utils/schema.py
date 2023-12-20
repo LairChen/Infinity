@@ -15,10 +15,10 @@ class ChatMessageSchema(Schema):
 
 class ChatRequestSchema(Schema):
     """Chat接口请求数据结构解析"""
-    model = fields.Str(required=True)  # noqa
+    model = fields.Str(required=True)
     messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
     stream = fields.Bool(load_default=True)
-    max_tokens = fields.Int(load_default=None)
+    max_tokens = fields.Int(load_default=1024)
     n = fields.Int(load_default=1)
     seed = fields.Int(load_default=1)
     top_p = fields.Float(load_default=1.0)
