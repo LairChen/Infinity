@@ -14,7 +14,7 @@ def init_model_and_tokenizer(path: str) -> Tuple[PreTrainedModel, PreTrainedToke
         torch_dtype=torch.float16,
         device_map="auto",
         trust_remote_code=True
-    ).eval()
+    )
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=path,
         use_fast=False,
