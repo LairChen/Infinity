@@ -12,8 +12,7 @@ def merge_model_and_tokenizer(inputPath: str, outputPath: str, modelName: str) -
         torch_dtype=torch.float16,
         device_map="auto",
         trust_remote_code=True
-    ).eval()
-    model = model.merge_and_unload()
+    ).eval().merge_and_unload()
     model.save_pretrained(save_directory=outputPath, safe_serialization=True)
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path="{}/{}".format(inputPath, modelName),
