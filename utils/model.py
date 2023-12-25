@@ -3,9 +3,6 @@ from typing import Dict, List
 
 import numpy as np
 import torch
-from auto_gptq import exllama_set_max_input_length
-from sentence_transformers import SentenceTransformer
-from sklearn.preprocessing import PolynomialFeatures
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
 
@@ -65,7 +62,6 @@ class BaichuanModel(BaseChatModel):  # noqa
             use_fast=False,
             trust_remote_code=True
         )
-        self.model = self.model.eval()
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         return self.model.chat(self.tokenizer, conversation)
@@ -96,6 +92,7 @@ class DeepseekModel(BaseChatModel):  # noqa
             trust_remote_code=True
         )
         # GPTQ量化模型需要额外扩展输入文本的长度
+        from auto_gptq import exllama_set_max_input_length
         if self.name.endswith("GPTQ"):  # noqa
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
@@ -128,9 +125,11 @@ class M3eModel(BaseEmbeddingsModel):
 
     def __init__(self, name: str, path: str):
         super(M3eModel, self).__init__(name=name)
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(model_name_or_path=path)
 
     def embedding(self, sentence: str) -> List[float]:
+        from sklearn.preprocessing import PolynomialFeatures
         result = self.model.encode(sentences=sentence)
         # OpenAI API 嵌入维度标准 1536
         if len(result) < 1536:
