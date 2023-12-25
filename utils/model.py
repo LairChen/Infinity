@@ -23,7 +23,7 @@ class BaseChatModel(BaseModel):
 
     def finetune(self):  # noqa
         """模型微调"""
-        raise NotImplementedError("method: train")
+        raise NotImplementedError("method: finetune")
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         """生成模型答复文本"""
