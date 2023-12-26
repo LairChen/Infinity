@@ -19,6 +19,7 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * m3e-base
 * m3e-small
 * m3e-large
+* stable-diffusion
 
 ### Work Station
 
