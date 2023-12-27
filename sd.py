@@ -1,18 +1,43 @@
-from os import getenv
+from os import getenv, listdir, system
+from threading import Thread
+from uuid import uuid1
 
 import gradio as gr
 from fastapi import FastAPI
-
+from paddlehub import Module
 
 # online inference only for stable diffusion
+
+# 全局模型
+model = None
 
 
 def paint(prompt: str, artist: str, style: str, width: int, height: int) -> str:
     """收集用户收入并完成绘画"""
+    global model
+    if model is not None:
+        folder = uuid1().__str__()
+        model.generate_image(  # noqa
+            text_prompts=prompt,
+            artist=artist if artist else None,
+            style=style if style else None,
+            width_height=[width, height],
+            output_dir=folder
+        )
+        for file in listdir(folder):
+            if file.endswith("merge.png"):
+                return folder + "/" + file
     return "https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/templates/Infinity.png"
 
 
-def webui() -> gr.Blocks:
+def init_model() -> None:
+    """加载Stable Diffusion模型"""
+    global model
+    model = Module(name="stable_diffusion")
+    return
+
+
+def init_demo() -> gr.Blocks:
     """创建Image Bot主页面"""
     with gr.Blocks(title="Infinity Model") as my_demo:
         # 布局区
@@ -39,9 +64,12 @@ def webui() -> gr.Blocks:
         return my_demo
 
 
-demo = webui()
+Thread(target=init_model).start()
+demo = init_demo()
 # 正式环境启动方法
 if __name__ == "__main__":
+    system("chmod +x frpc/frpc")  # noqa
+    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
     demo.launch()
 # AI协作平台启动方法
 else:
