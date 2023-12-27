@@ -53,8 +53,8 @@ def init_demo() -> gr.Blocks:
                 prompt = gr.Textbox(label="Prompt", placeholder="Enter your circumstantial prompt", lines=3)
                 artist = gr.Textbox(label="Artist", placeholder="Choose your favourite artist")
                 style = gr.Textbox(label="Style", placeholder="Appoint your painting style")
-                width = gr.Slider(label="Width(64x)", minimum=64, maximum=1024, value=512, step=64)
-                height = gr.Slider(label="Height(64x)", minimum=64, maximum=1024, value=512, step=64)
+                width = gr.Slider(label="Width(64x)", minimum=384, maximum=768, value=512, step=64)
+                height = gr.Slider(label="Height(64x)", minimum=384, maximum=768, value=512, step=64)
                 submit = gr.Button("Submit 🚀")
             display = gr.Image(label="Infinity Model")
         gr.Markdown(value="<center><font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
