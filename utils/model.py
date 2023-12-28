@@ -21,10 +21,6 @@ class BaseChatModel(BaseModel):
         self.model = None
         self.tokenizer = None
 
-    def finetune(self):  # noqa
-        """模型微调"""
-        raise NotImplementedError("method: finetune")
-
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         """生成模型答复文本"""
         raise NotImplementedError("method: generate")
@@ -118,6 +114,41 @@ class DeepseekModel(BaseChatModel):  # noqa
             if torch.backends.mps.is_available():  # noqa
                 torch.mps.empty_cache()  # noqa
             yield text.replace("<|EOT|>", "")
+
+
+class SusModel(BaseChatModel):
+    """class for sus model"""
+
+    def __init__(self, name: str, path: str):
+        super(SusModel, self).__init__(name=name)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=path,
+            use_fast=False,
+            trust_remote_code=True
+        )
+        # GPTQ量化模型需要额外扩展输入文本的长度
+        from auto_gptq import exllama_set_max_input_length
+        if self.name.endswith("GPTQ"):  # noqa
+            self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
+
+    def generate(self, conversation: List[Dict[str, str]]) -> str:
+        prompt = conversation[-1]["content"]
+        prompt_template = f'''### Human: {prompt}
+
+        ### Assistant:
+        '''
+        input_ids = self.tokenizer(prompt_template, return_tensors="pt").input_ids.cuda()
+        output = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=1024)
+        return self.tokenizer.decode(output[0])
+
+    def stream(self, conversation: List[Dict[str, str]]):
+        pass
 
 
 class M3eModel(BaseEmbeddingsModel):
