@@ -20,6 +20,8 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * m3e-small
 * m3e-large
 * stable-diffusion
+* SUS-Chat-34B
+* SUS-Chat-34B-GPTQ
 
 ### Work Station
 
