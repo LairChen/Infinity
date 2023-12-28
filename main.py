@@ -7,7 +7,7 @@ from utils import *
 
 # 任务全部分发在core代码中
 # 为统一deepspeed，任务全部通过命令行执行
-# 任务自有工具类，不从utils获取
+# 任务自有工具类，不从utils中获取
 
 def get_data_num() -> int:
     """动态获取训练数据集规模"""
