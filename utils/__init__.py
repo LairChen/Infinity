@@ -8,7 +8,9 @@ CHAT_MODEL_TYPE = {
     "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-33b-instruct": DeepseekModel,  # noqa
-    "deepseek-coder-33B-instruct-GPTQ": DeepseekModel  # noqa
+    "deepseek-coder-33B-instruct-GPTQ": DeepseekModel,  # noqa
+    "SUS-Chat-34B": SusModel,
+    "SUS-Chat-34B-GPTQ": SusModel  # noqa
 }
 
 EMBEDDINGS_MODEL_TYPE = {
