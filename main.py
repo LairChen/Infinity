@@ -21,7 +21,7 @@ def get_model_name() -> str:
         model = match(pattern="(.*)\.zip", string=filename)  # noqa
         if model is not None:
             return model.groups()[0]
-    raise FileNotFoundError("No existing base model.")
+    raise FileNotFoundError("no existing base model")
 
 
 cmd_train = "deepspeed core/train.py " \
