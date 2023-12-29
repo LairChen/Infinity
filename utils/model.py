@@ -94,16 +94,16 @@ class DeepseekModel(BaseChatModel):  # noqa
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
-        output_ids = self.model.generate(inputs=input_ids, do_sample=False, eos_token_id=32021, max_new_tokens=1024)
+        output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
-        input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
+        input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
         streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=5.0, skip_prompt=True, skip_special_tokens=True)
         generate_kwargs = {
             "input_ids": input_ids,
             "streamer": streamer,
-            "do_sample": False,
+            "do_sample": True,
             "eos_token_id": 32021,
             "max_new_tokens": 1024,
             "num_beams": 1,
@@ -113,7 +113,7 @@ class DeepseekModel(BaseChatModel):  # noqa
         for text in streamer:
             if torch.backends.mps.is_available():  # noqa
                 torch.mps.empty_cache()  # noqa
-            yield text.replace("<|EOT|>", "")
+            yield text
 
 
 class SusModel(BaseChatModel):
@@ -138,17 +138,39 @@ class SusModel(BaseChatModel):
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        prompt = conversation[-1]["content"]
-        prompt_template = f'''### Human: {prompt}
-
-        ### Assistant:
-        '''
-        input_ids = self.tokenizer(prompt_template, return_tensors="pt").input_ids.cuda()
-        output = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=1024)
-        return self.tokenizer.decode(output[0])
+        input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
+        output_ids = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=1024)
+        return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
-        pass
+        input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=5.0, skip_prompt=True, skip_special_tokens=True)
+        generate_kwargs = {
+            "input_ids": input_ids,
+            "streamer": streamer,
+            "do_sample": True,
+            "max_new_tokens": 1024,
+            "num_beams": 1,
+            "repetition_penalty": 1
+        }
+        Thread(target=self.model.generate, kwargs=generate_kwargs).start()
+        for text in streamer:
+            if torch.backends.mps.is_available():  # noqa
+                torch.mps.empty_cache()  # noqa
+            yield text
+
+    @staticmethod
+    def chat_template(conversation: List[Dict[str, str]]) -> str:
+        ans = ""
+        for message in conversation:
+            role, content = message["role"], message["content"]
+            if role == "user":
+                ans += "### Human: {}\n\n### Assistant: ".format(content)
+            elif role == "assistant":
+                ans += "{}\n\n".format(content)
+            else:
+                raise ValueError("error conversation or history")
+        return ans
 
 
 class M3eModel(BaseEmbeddingsModel):
