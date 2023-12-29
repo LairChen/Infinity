@@ -60,11 +60,11 @@ class BaichuanModel(BaseChatModel):  # noqa
         )
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        return self.model.chat(self.tokenizer, conversation)
+        return self.model.chat(tokenizer=self.tokenizer, messages=conversation)
 
     def stream(self, conversation: List[Dict[str, str]]):
         position = 0
-        for answer in self.model.chat(self.tokenizer, conversation, stream=True):
+        for answer in self.model.chat(tokenizer=self.tokenizer, messages=conversation, stream=True):
             if torch.backends.mps.is_available():  # noqa
                 torch.mps.empty_cache()  # noqa
             yield answer[position:]
@@ -93,7 +93,7 @@ class DeepseekModel(BaseChatModel):  # noqa
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        input_ids = self.tokenizer.apply_chat_template(conversation, return_tensors="pt").to(self.model.device)
+        input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
         output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
