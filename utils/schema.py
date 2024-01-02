@@ -27,6 +27,7 @@ class ChatRequestSchema(Schema):
     temperature = fields.Float(load_default=1.0)
     presence_penalty = fields.Float(load_default=0.0)
     frequency_penalty = fields.Float(load_default=0.0)
+    stop = fields.Raw(load_default=None)
 
 
 class ChatChoiceSchema(Schema):
