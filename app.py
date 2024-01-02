@@ -72,11 +72,11 @@ def chat() -> Response:
     """Chat接口"""
     req = ChatRequestSchema().load(request.json)
     if req["stream"]:
-        # 非流式响应
-        return jsonify(chat_result(req=req))
-    else:
         # 流式响应
         return current_app.response_class(response=chat_stream(req=req), mimetype="text/event-stream")
+    else:
+        # 非流式响应
+        return jsonify(chat_result(req=req))
 
 
 # @api.route(rule="/v1/completions", methods=["POST"])
