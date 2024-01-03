@@ -2,7 +2,7 @@ from .config import *
 from .model import *
 from .schema import *
 
-CHAT_MODEL_TYPE = {
+LANGUAGE_MODEL_TYPE = {
     "Baichuan2-7B-Chat": BaichuanModel,  # noqa
     "Baichuan2-13B-Chat": BaichuanModel,  # noqa
     "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
@@ -13,7 +13,7 @@ CHAT_MODEL_TYPE = {
     "SUS-Chat-34B-GPTQ": SusModel  # noqa
 }
 
-EMBEDDINGS_MODEL_TYPE = {
+EMBEDDING_MODEL_TYPE = {
     "m3e-base": M3eModel,
     "m3e-small": M3eModel,
     "m3e-large": M3eModel
