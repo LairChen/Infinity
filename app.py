@@ -18,15 +18,15 @@ from utils import *
 # pretrainmodel模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
-def init_chat_model() -> BaseChatModel:
+def init_language_model() -> BaseChatModel:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read()
-    my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
+    my_model = LANGUAGE_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
     return my_model
 
 
-def init_embeddings_model() -> Optional[BaseEmbeddingsModel]:
+def init_embedding_model() -> Optional[BaseEmbeddingsModel]:
     """初始化嵌入模型"""
     for filename in listdir(path_eval_pretrain):
         modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
@@ -35,12 +35,12 @@ def init_embeddings_model() -> Optional[BaseEmbeddingsModel]:
             break
     else:
         return None
-    my_model = EMBEDDINGS_MODEL_TYPE[my_model_name](name=my_model_name, path=my_model_name)
+    my_model = EMBEDDING_MODEL_TYPE[my_model_name](name=my_model_name, path=my_model_name)
     return my_model
 
 
-chat_model = init_chat_model()
-embeddings_model = init_embeddings_model()
+language_model = init_language_model()
+embedding_model = init_embedding_model()
 
 
 # STEP2.启动接口服务
@@ -94,9 +94,9 @@ def embeddings() -> Response:
 
 def chat_result(req: Dict) -> str:
     """输出模型回答"""
-    message = ChatMessageSchema().dump({"role": "assistant", "content": chat_model.generate(conversation=req["messages"])})
+    message = ChatMessageSchema().dump({"role": "assistant", "content": language_model.generate(conversation=req["messages"])})
     choice = ChatChoiceSchema().dump({"index": 0, "message": message})
-    return ChatResponseSchema().dump({"model": chat_model.name, "choices": [choice]})
+    return ChatResponseSchema().dump({"model": language_model.name, "choices": [choice]})
 
 
 @stream_with_context
@@ -105,15 +105,15 @@ def chat_stream(req: Dict):
     index = 0
     delta = ChatMessageSchema().dump({"role": "assistant", "content": ""})
     choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": chat_model.name, "choices": [choice]}))
+    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
     # 多轮对话，字符型流式输出
-    for answer in chat_model.stream(conversation=req["messages"]):
+    for answer in language_model.stream(conversation=req["messages"]):
         index += 1
         delta = ChatMessageSchema().dump({"role": "assistant", "content": answer})
         choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield chat_sse(line=ChatResponseChunkSchema().dump({"model": chat_model.name, "choices": [choice]}))
+        yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
     choice = ChatChoiceChunkSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": chat_model.name, "choices": [choice]}))
+    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
     yield chat_sse(line="[DONE]")
 
 
@@ -124,14 +124,14 @@ def chat_sse(line: Union[str, Dict]) -> str:
 
 def embeddings_result(req: Dict) -> str:
     """计算嵌入结果"""
-    data = [{"index": index, "embedding": embeddings_model.embedding(sentence=text) if embeddings_model is not None else []}
+    data = [{"index": index, "embedding": embedding_model.embedding(sentence=text) if embedding_model is not None else []}
             for index, text in enumerate(req["input"])]
     usage = {
         "prompt_tokens": sum(len(text.split()) for text in req["input"]),
         "total_tokens": sum(embeddings_token_num(text=text) for text in req["input"])
     }
     return EmbeddingsResponseSchema().dump({
-        "model": embeddings_model.name if embeddings_model is not None else "", "data": data, "usage": usage})
+        "model": embedding_model.name if embedding_model is not None else "", "data": data, "usage": usage})
 
 
 def embeddings_token_num(text: str) -> int:
@@ -146,7 +146,7 @@ def embeddings_token_num(text: str) -> int:
 def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]) -> List[List[str]]:  # noqa
     """模型回答并更新聊天窗口"""
     history.append({"role": "user", "content": textbox})
-    answer = chat_model.generate(conversation=history)  # 多轮对话，非流式文本输出
+    answer = language_model.generate(conversation=history)  # 多轮对话，非流式文本输出
     history.append({"role": "assistant", "content": answer})
     chatbot.append([textbox, answer])
     return chatbot
