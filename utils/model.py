@@ -30,14 +30,31 @@ class BaseChatModel(BaseModel):
         raise NotImplementedError("method: stream")
 
 
-class BaseEmbeddingsModel(BaseModel):
-    """base class for embeddings models"""
+class BaseCompletionModel(BaseModel):
+    """base class for completion models"""
 
     def __init__(self, name: str):
-        super(BaseEmbeddingsModel, self).__init__(name=name)
+        super(BaseCompletionModel, self).__init__(name=name)
+        self.model = None
+        self.tokenizer = None
+
+    def generate(self, question: str) -> str:
+        """生成模型填充文本"""
+        raise NotImplementedError("method: generate")
+
+    def stream(self, question: str):
+        """流式生成模型填充，使用字符模式"""
+        raise NotImplementedError("method: stream")
+
+
+class BaseEmbeddingModel(BaseModel):
+    """base class for embedding models"""
+
+    def __init__(self, name: str):
+        super(BaseEmbeddingModel, self).__init__(name=name)
         self.model = None
 
-    def embedding(self, sentence: List[str]) -> List[List[float]]:
+    def embedding(self, sentence: str) -> List[float]:
         """生成模型嵌入结果"""
         raise NotImplementedError("method: embedding")
 
@@ -173,7 +190,7 @@ class SusModel(BaseChatModel):
         return ans
 
 
-class M3eModel(BaseEmbeddingsModel):
+class M3eModel(BaseEmbeddingModel):
     """class for m3e model"""
 
     def __init__(self, name: str, path: str):
