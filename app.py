@@ -14,19 +14,24 @@ from utils import *
 
 # STEP1.加载模型
 # 包括对话模型/补全模型和嵌入模型，其中对话模型/补全模型从pretrainmodel获取，嵌入模型从dataset获取
-# 对话模型/补全模型必须，嵌入模型可选
+# 对话模型/补全模型必选，嵌入模型可选
 # pretrainmodel模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
-def init_language_model() -> BaseChatModel:
+def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read()
-    my_model = LANGUAGE_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
+    if CHAT_MODEL_TYPE.get(my_model_name, None) is not None:
+        my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
+    elif COMPLETION_MODEL_TYPE.get(my_model_name, None) is not None:
+        my_model = COMPLETION_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
+    else:
+        raise FileNotFoundError("no existing language model")
     return my_model
 
 
-def init_embedding_model() -> Optional[BaseEmbeddingsModel]:
+def init_embedding_model() -> Optional[BaseEmbeddingModel]:
     """初始化嵌入模型"""
     for filename in listdir(path_eval_pretrain):
         modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
