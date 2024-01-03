@@ -2,7 +2,7 @@ from .config import *
 from .model import *
 from .schema import *
 
-LANGUAGE_MODEL_TYPE = {
+CHAT_MODEL_TYPE = {
     "Baichuan2-7B-Chat": BaichuanModel,  # noqa
     "Baichuan2-13B-Chat": BaichuanModel,  # noqa
     "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
@@ -11,6 +11,10 @@ LANGUAGE_MODEL_TYPE = {
     "deepseek-coder-33B-instruct-GPTQ": DeepseekModel,  # noqa
     "SUS-Chat-34B": SusModel,
     "SUS-Chat-34B-GPTQ": SusModel  # noqa
+}
+
+COMPLETION_MODEL_TYPE = {
+
 }
 
 EMBEDDING_MODEL_TYPE = {
