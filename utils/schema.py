@@ -65,6 +65,7 @@ class ChatResponseChunkSchema(Schema):
 # Completions接口
 
 class CompletionsRequestSchema(Schema):
+    """Completions接口请求数据结构解析"""
     model = fields.Str(required=True)
     prompt = fields.Raw(required=True)
     stream = fields.Bool(load_default=False)
@@ -78,18 +79,20 @@ class CompletionsRequestSchema(Schema):
     stop = fields.Raw(load_default=None)
 
 
-class CompletionChoiceSchema(Schema):
+class CompletionsChoiceSchema(Schema):
+    """Completions消息选择器"""
     index = fields.Int(required=True)
     text = fields.Str(required=True)
-    logprobs = fields.Dict(load_default=None)  # noqa
+    logprobs = fields.Dict(dump_default=None)  # noqa
     finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
 
 
 class CompletionsResponseSchema(Schema):
+    """Completions接口响应数据结构映射"""
     id = fields.Str(dump_default=lambda: uuid4().hex)
     created = fields.Int(dump_default=lambda: int(time()))
     model = fields.Str(required=True)
-    choices = fields.List(fields.Nested(nested=CompletionChoiceSchema), required=True)  # noqa
+    choices = fields.List(fields.Nested(nested=CompletionsChoiceSchema), required=True)  # noqa
     object = fields.Constant(constant="completions")
 
 
