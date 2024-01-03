@@ -19,7 +19,7 @@ class ChatRequestSchema(Schema):
     """Chat接口请求数据结构解析"""
     model = fields.Str(required=True)
     messages = fields.List(fields.Nested(nested=ChatMessageSchema), required=True)  # noqa
-    stream = fields.Bool(required=True)
+    stream = fields.Bool(load_default=False)
     max_tokens = fields.Int(load_default=1024)
     n = fields.Int(load_default=1)
     seed = fields.Int(load_default=1)
@@ -62,35 +62,35 @@ class ChatResponseChunkSchema(Schema):
     object = fields.Constant(constant="chat")
 
 
-# # Completions接口
-#
-# class CompletionsRequestSchema(Schema):
-#     model = fields.Str(required=True)
-#     prompt = fields.Raw(metadata={"example": "Say this is a test"})
-#     stream = fields.Bool(load_default=False)
-#     max_tokens = fields.Int(load_default=1024)
-#     n = fields.Int(load_default=1)
-#     seed = fields.Int(load_default=1)
-#     top_p = fields.Float(load_default=1.0)
-#     temperature = fields.Float(load_default=1.0)
-#     presence_penalty = fields.Float(load_default=0.0)
-#     frequency_penalty = fields.Float(load_default=0.0)
-#     logit_bias = fields.Dict(load_default=None)  # noqa
-#
-#
-# class CompletionChoiceSchema(Schema):
-#     index = fields.Int(required=True)
-#     text = fields.Str(required=True)
-#     logprobs = fields.Dict(load_default=None)  # noqa
-#     finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
-#
-#
-# class CompletionsResponseSchema(Schema):
-#     id = fields.Str(dump_default=lambda: uuid4().hex)
-#     created = fields.Int(dump_default=lambda: int(time()))
-#     model = fields.Str(required=True)
-#     choices = fields.List(fields.Nested(nested=CompletionChoiceSchema), required=True)  # noqa
-#     object = fields.Constant(constant="completions")
+# Completions接口
+
+class CompletionsRequestSchema(Schema):
+    model = fields.Str(required=True)
+    prompt = fields.Raw(required=True)
+    stream = fields.Bool(load_default=False)
+    max_tokens = fields.Int(load_default=1024)
+    n = fields.Int(load_default=1)
+    seed = fields.Int(load_default=1)
+    top_p = fields.Float(load_default=1.0)
+    temperature = fields.Float(load_default=1.0)
+    presence_penalty = fields.Float(load_default=0.0)
+    frequency_penalty = fields.Float(load_default=0.0)
+    stop = fields.Raw(load_default=None)
+
+
+class CompletionChoiceSchema(Schema):
+    index = fields.Int(required=True)
+    text = fields.Str(required=True)
+    logprobs = fields.Dict(load_default=None)  # noqa
+    finish_reason = fields.Str(validate=validate.OneOf(["stop", "length", "content_filter", "function_call"]))  # noqa
+
+
+class CompletionsResponseSchema(Schema):
+    id = fields.Str(dump_default=lambda: uuid4().hex)
+    created = fields.Int(dump_default=lambda: int(time()))
+    model = fields.Str(required=True)
+    choices = fields.List(fields.Nested(nested=CompletionChoiceSchema), required=True)  # noqa
+    object = fields.Constant(constant="completions")
 
 
 # Embeddings接口
