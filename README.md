@@ -19,6 +19,7 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * m3e-base
 * m3e-small
 * m3e-large
+* pyramidbox_face_detection
 * stable-diffusion
 * SUS-Chat-34B
 * SUS-Chat-34B-GPTQ
