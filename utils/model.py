@@ -105,8 +105,8 @@ class DeepseekModel(BaseChatModel):  # noqa
             trust_remote_code=True
         )
         # GPTQ量化模型需要额外扩展输入文本的长度
-        from auto_gptq import exllama_set_max_input_length
         if self.name.endswith("GPTQ"):  # noqa
+            from auto_gptq import exllama_set_max_input_length
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
@@ -150,8 +150,8 @@ class SusModel(BaseChatModel):
             trust_remote_code=True
         )
         # GPTQ量化模型需要额外扩展输入文本的长度
-        from auto_gptq import exllama_set_max_input_length
         if self.name.endswith("GPTQ"):  # noqa
+            from auto_gptq import exllama_set_max_input_length
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
