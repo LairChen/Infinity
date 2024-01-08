@@ -1,7 +1,7 @@
 from json import dumps
 from os import getenv, listdir, system
 from re import match
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import gradio as gr
 from fastapi import FastAPI
@@ -148,21 +148,16 @@ def embeddings_token_num(text: str) -> int:
 # AI协作平台不适用main空间执行，且需要用FastAPI挂载
 
 
-def refresh_chatbot_and_history(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]) -> List[List[str]]:  # noqa
+def submit(chatbot: List[List[str]], textbox: str, history: List[Dict[str, str]]) -> Tuple[List[List[str]], str]:  # noqa
     """模型回答并更新聊天窗口"""
     history.append({"role": "user", "content": textbox})
     answer = language_model.generate(conversation=history)  # 多轮对话，非流式文本输出
     history.append({"role": "assistant", "content": answer})
     chatbot.append([textbox, answer])
-    return chatbot
+    return chatbot, ""
 
 
-def clear_textbox() -> Dict:
-    """清理用户输入空间"""
-    return gr.update(value="")
-
-
-def clear_chatbot_and_history(chatbot: List[List[str]], history: List[Dict[str, str]]) -> List:  # noqa
+def clean(chatbot: List[List[str]], history: List[Dict[str, str]]) -> List[List[str]]:  # noqa
     """清理人机对话历史记录"""
     chatbot.clear()
     history.clear()
@@ -180,18 +175,23 @@ def init_demo() -> gr.Blocks:
         gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
         gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥</center>")
-        chatbot = gr.Chatbot(label="Infinity Model")  # noqa
-        textbox = gr.Textbox(label="Input", lines=2)
-        history = gr.State(value=[])
         with gr.Row():
-            btnSubmit = gr.Button("Submit 🚀")
-            btnClean = gr.Button("Clean 🧹")
+            with gr.Column(scale=1):
+                pass
+            with gr.Column(scale=5):
+                chatbot = gr.Chatbot(label="Infinity Model")  # noqa
+                textbox = gr.Textbox(label="Input", lines=2)
+                history = gr.State(value=[])
+                with gr.Row():
+                    btnSubmit = gr.Button("Submit 🚀")
+                    btnClean = gr.Button("Clean 🧹")
+            with gr.Column(scale=1):
+                pass
         gr.Markdown(value="<center><font size=4>⚠ I strongly advise you not to knowingly generate or spread harmful content, "
                           "including rumor, hatred, violence, reactionary, pornography, deception, etc. ⚠</center>")
         # 功能区
-        btnSubmit.click(fn=refresh_chatbot_and_history, inputs=[chatbot, textbox, history], outputs=[chatbot])
-        btnSubmit.click(fn=clear_textbox, inputs=[], outputs=[textbox])
-        btnClean.click(fn=clear_chatbot_and_history, inputs=[chatbot, history], outputs=[chatbot])
+        btnSubmit.click(fn=submit, inputs=[chatbot, textbox, history], outputs=[chatbot, textbox])
+        btnClean.click(fn=clean, inputs=[chatbot, history], outputs=[chatbot])
     return my_demo
 
 
