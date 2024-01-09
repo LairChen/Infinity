@@ -1,5 +1,3 @@
-from base64 import b64decode
-from json import loads
 from os import environ, getenv, system
 from threading import Thread
 from typing import List
@@ -26,7 +24,7 @@ def detect(path: str) -> List[List[int]]:
         result = model.face_detection(images=[imread(filename=path)], use_gpu=True)  # noqa
         for loc in result[0]["data"]:
             # 按照上下左右的顺序进行组织
-            ans.append([loc["top"], loc["bottom"], loc["left"], loc["right"]])
+            ans.append([int(loc["top"]), int(loc["bottom"]), int(loc["left"]), int(loc["right"])])
     return ans
 
 
@@ -39,8 +37,8 @@ def init_model() -> None:
 
 def init_api() -> Flask:
     """创建接口服务"""
-    system("chmod +x frpc/frpc")  # noqa
-    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    system("chmod +x frpc/frpc-amd")  # noqa
+    system("nohup ./frpc/frpc-amd -c frpc/frpc.ini &")  # noqa
     my_api = Flask(import_name=__name__)  # 声明主服务
     CORS(app=my_api)  # 允许跨域
     return my_api
@@ -55,12 +53,12 @@ def index() -> str:
     return render_template(template_name_or_list="Infinity.html")  # noqa
 
 
-@api.route(rule="/detect", methods=["POST"])
+@api.route(rule="/detection", methods=["POST"])
 def detect_api() -> Response:
     """接口服务专用"""
-    b64 = loads(s=request.json)["b64"]
-    print(b64decode(s=b64))
-    return jsonify([])
+    file = request.files["file"]
+    file.save(dst=file.filename)
+    return jsonify({"location": detect(path=file.filename)})
 
 
 def detect_gr() -> str:
