@@ -68,8 +68,8 @@ Thread(target=init_model).start()
 demo = init_demo()
 # 正式环境启动方法
 if __name__ == "__main__":
-    system("chmod +x frpc/frpc")  # noqa
-    system("nohup ./frpc/frpc -c frpc/frpc.ini &")  # noqa
+    system("chmod +x frpc/frpc-amd")  # noqa
+    system("nohup ./frpc/frpc-amd -c frpc/frpc.ini &")  # noqa
     demo.launch()
 # AI协作平台启动方法
 else:
