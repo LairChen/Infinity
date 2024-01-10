@@ -3,8 +3,8 @@ from .model import *
 from .schema import *
 
 CHAT_MODEL_TYPE = {
-    "Baichuan2-7B-Chat": BaichuanModel,  # noqa
-    "Baichuan2-13B-Chat": BaichuanModel,  # noqa
+    "Baichuan2-7B-Chat": Baichuan2Model,  # noqa
+    "Baichuan2-13B-Chat": Baichuan2Model,  # noqa
     "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-33b-instruct": DeepseekModel,  # noqa
