@@ -59,11 +59,11 @@ class BaseEmbeddingModel(BaseModel):
         raise NotImplementedError("method: embedding")
 
 
-class BaichuanModel(BaseChatModel):  # noqa
-    """class for baichuan model"""
+class Baichuan2Model(BaseChatModel):  # noqa
+    """class for baichuan2 model"""
 
     def __init__(self, name: str, path: str):
-        super(BaichuanModel, self).__init__(name=name)
+        super(Baichuan2Model, self).__init__(name=name)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
             torch_dtype=torch.float16,
@@ -122,9 +122,7 @@ class DeepseekModel(BaseChatModel):  # noqa
             "streamer": streamer,
             "do_sample": True,
             "eos_token_id": 32021,
-            "max_new_tokens": 1024,
-            "num_beams": 1,
-            "repetition_penalty": 1
+            "max_new_tokens": 1024
         }
         Thread(target=self.model.generate, kwargs=generate_kwargs).start()
         for text in streamer:
@@ -166,9 +164,7 @@ class SusModel(BaseChatModel):
             "input_ids": input_ids,
             "streamer": streamer,
             "do_sample": True,
-            "max_new_tokens": 1024,
-            "num_beams": 1,
-            "repetition_penalty": 1
+            "max_new_tokens": 1024
         }
         Thread(target=self.model.generate, kwargs=generate_kwargs).start()
         for text in streamer:
