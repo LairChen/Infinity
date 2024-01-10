@@ -5,6 +5,13 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
+# 判断是否启用NPU环境
+use_gpu = True
+if not torch.cuda.is_available():
+    import torch_npu  # noqa
+
+    use_gpu = False
+
 
 class BaseModel(object):
     """base class for all models"""
@@ -96,7 +103,7 @@ class DeepseekModel(BaseChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map="auto" if use_gpu else "npu:0",
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -111,24 +118,28 @@ class DeepseekModel(BaseChatModel):  # noqa
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
+        if not use_gpu:
+            # NPU任务需要显式的声明设备
+            torch_npu.npu.set_device("npu:0")  # noqa
         output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
         input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
-        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=5.0, skip_prompt=True, skip_special_tokens=True)
-        generate_kwargs = {
-            "input_ids": input_ids,
-            "streamer": streamer,
-            "do_sample": True,
-            "eos_token_id": 32021,
-            "max_new_tokens": 1024
-        }
-        Thread(target=self.model.generate, kwargs=generate_kwargs).start()
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=None, skip_prompt=True, skip_special_tokens=True)
+        Thread(target=self.stream_task, args=(input_ids, streamer)).start()
         for text in streamer:
             if torch.backends.mps.is_available():  # noqa
                 torch.mps.empty_cache()  # noqa
             yield text
+
+    def stream_task(self, input_ids: torch.Tensor, streamer: TextIteratorStreamer) -> None:
+        """流式响应的子任务"""
+        if not use_gpu:
+            # NPU任务需要显式的声明设备
+            torch_npu.npu.set_device("npu:0")  # noqa
+        self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
+        return None
 
 
 class SusModel(BaseChatModel):
