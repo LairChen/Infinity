@@ -8,6 +8,11 @@ Infinity has contributed a platform to integrate the generation capability of la
 
 With Infinity, you can train models to connect to your downstream jobs, and provide corresponding service.
 
+### Available Devices
+
+* Nvidia GPU
+* Ascend NPU
+
 ### Supported Models
 
 * Baichuan2-7B-Chat
