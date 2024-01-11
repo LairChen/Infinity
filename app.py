@@ -208,7 +208,7 @@ if __name__ == "__main__":
 # AI协作平台启动方法
 else:
     app=FastAPI()
-    @app.get("/info")
+    @app.get(getenv("OPENI_GRADIO_URL") + "/info")
     def info():
         return {
             "app_name": "FastAPI框架学习",
