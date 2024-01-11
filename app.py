@@ -208,10 +208,11 @@ if __name__ == "__main__":
 # AI协作平台启动方法
 else:
     app=FastAPI()
-    @app.get(getenv("OPENI_GRADIO_URL") + "/info")
+    print(getenv("OPENI_GRADIO_URL"))
+    app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+    @app.get("/notebook_infoinfo")
     def info():
         return {
             "app_name": "FastAPI框架学习",
             "app_version": "v0.0.1"
         }
-    app = gr.mount_gradio_app(app=FastAPI(), blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
