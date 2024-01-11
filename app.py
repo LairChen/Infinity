@@ -209,6 +209,12 @@ def info(req: dict):
     return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
 
 
+@app.post(getenv("OPENI_GRADIO_URL") + "/test")
+def info(req: dict):
+    req = ChatRequestSchema().load(req)
+    return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
+
+
 # 正式环境启动方法
 if __name__ == "__main__":
     demo.launch()
