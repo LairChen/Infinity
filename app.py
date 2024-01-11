@@ -1,5 +1,5 @@
 from json import dumps
-from os import getenv, listdir, system
+from os import getenv, listdir
 from re import match
 from typing import Union, Optional, Tuple
 
@@ -55,14 +55,14 @@ embedding_model = init_embedding_model()
 
 def init_api() -> Flask:
     """创建接口服务"""
-    if torch.cuda.is_available():
-        # GPU环境，选用AMD架构的客户端工具
-        client = "frpc-amd"  # noqa
-    else:
-        # NPU环境，选用ARM架构的客户端工具
-        client = "frpc-arm"  # noqa
-    system("chmod +x frpc/{}".format(client))  # noqa
-    system("nohup ./frpc/{} -c frpc/frpc.ini &".format(client))  # noqa
+    # if torch.cuda.is_available():
+    #     # GPU环境，选用AMD架构的客户端工具
+    #     client = "frpc-amd"  # noqa
+    # else:
+    #     # NPU环境，选用ARM架构的客户端工具
+    #     client = "frpc-arm"  # noqa
+    # system("chmod +x frpc/{}".format(client))  # noqa
+    # system("nohup ./frpc/{} -c frpc/frpc.ini &".format(client))  # noqa
     my_api = Flask(import_name=__name__)  # 声明主服务
     CORS(app=my_api)  # 允许跨域
     return my_api
