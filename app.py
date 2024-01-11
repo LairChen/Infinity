@@ -203,10 +203,10 @@ def init_demo() -> gr.Blocks:
 
 demo = init_demo()
 app=FastAPI()
-@app.post(getenv("OPENI_GRADIO_URL"))
-def info(req: dict):
-    req = ChatRequestSchema().load(req)
-    return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
+# @app.post(getenv("OPENI_GRADIO_URL"))
+# def info(req: dict):
+#     req = ChatRequestSchema().load(req)
+#     return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
 
 
 @app.post(getenv("OPENI_GRADIO_URL") + "/test")
@@ -226,6 +226,5 @@ if __name__ == "__main__":
     demo.launch()
 # AI协作平台启动方法
 else:
-    pass
-    # app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+    app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
 
