@@ -210,8 +210,10 @@ else:
     app=FastAPI()
     print(getenv("OPENI_GRADIO_URL"))
     # app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
-    @app.get(getenv("OPENI_GRADIO_URL"))
-    def info():
+    @app.post(getenv("OPENI_GRADIO_URL"))
+    def info(req):
+        print(req)
+        print(ChatRequestSchema().load(req))
         return {
             "app_name": "FastAPI框架学习",
             "app_version": "v0.0.1"
