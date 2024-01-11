@@ -44,7 +44,7 @@ def init_embedding_model() -> Optional[BaseEmbeddingModel]:
     return my_model
 
 
-language_model = init_language_model()
+# language_model = init_language_model()
 embedding_model = init_embedding_model()
 
 
