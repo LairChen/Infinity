@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from flask import Flask, Response, current_app, jsonify, render_template, request, stream_with_context
 from flask_cors import CORS
 from tiktoken import get_encoding
-
+from fastapi.responses import StreamingResponse
 from utils import *
 
 
@@ -110,7 +110,7 @@ def chat_result(req: Dict) -> str:
     return ChatResponseSchema().dump({"model": language_model.name, "choices": [choice]})
 
 
-@stream_with_context
+## @stream_with_context
 def chat_stream(req: Dict):
     """流式输出模型回答"""
     index = 0
@@ -211,10 +211,6 @@ else:
     print(getenv("OPENI_GRADIO_URL"))
     # app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
     @app.post(getenv("OPENI_GRADIO_URL"))
-    def info(req):
-        print(req)
-        print(ChatRequestSchema().load(req))
-        return {
-            "app_name": "FastAPI框架学习",
-            "app_version": "v0.0.1"
-        }
+    def info(req: dict):
+        req = ChatRequestSchema().load(req)
+        return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
