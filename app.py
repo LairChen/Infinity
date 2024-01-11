@@ -226,5 +226,6 @@ if __name__ == "__main__":
     demo.launch()
 # AI协作平台启动方法
 else:
-    app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
+    pass
+    #app = gr.mount_gradio_app(app=app, blocks=demo, path=getenv("OPENI_GRADIO_URL"))  # noqa
 
