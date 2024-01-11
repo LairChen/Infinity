@@ -214,6 +214,12 @@ def info(req: dict):
     req = ChatRequestSchema().load(req)
     return StreamingResponse(chat_stream(req=req), media_type="text/event-stream")
 
+@app.get(getenv("OPENI_GRADIO_URL") + "/west")
+def info():
+    return {
+        "app_name": "FastAPI框架学习",
+        "app_version": "v0.0.1"
+    }
 
 # 正式环境启动方法
 if __name__ == "__main__":
