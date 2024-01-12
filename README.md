@@ -35,7 +35,7 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 
 **train mode**: Based on your own business data, tune and save the large language model.
 
-**online infer mode**: Use Gradio and Flask to offer an online prediction stage.
+**online infer mode**: Use FastAPI and Gradio to offer an online prediction stage.
 
 ***
 
