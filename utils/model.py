@@ -117,14 +117,17 @@ class DeepseekModel(BaseChatModel):  # noqa
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
         if not use_gpu:
             # NPU任务需要显式的声明设备
             torch_npu.npu.set_device("npu:0")  # noqa
+        input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
         output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
+        if not use_gpu:
+            # NPU任务需要显式的声明设备
+            torch_npu.npu.set_device("npu:0")  # noqa
         input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
         streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=None, skip_prompt=True, skip_special_tokens=True)
         Thread(target=self.stream_task, args=(input_ids, streamer)).start()
