@@ -21,7 +21,7 @@ from utils import *
 def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
-        my_model_name = f.read()
+        my_model_name = f.read().strip()
     if CHAT_MODEL_TYPE.get(my_model_name, None) is not None:
         my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
     elif COMPLETION_MODEL_TYPE.get(my_model_name, None) is not None:
