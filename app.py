@@ -47,7 +47,7 @@ def init_demo() -> gr.Blocks:
                           "<img src='https://openi.pcl.ac.cn/rhys2985/Infinity/raw/branch/master/templates/Infinity.png' "
                           "style='height: 100px'>"
                           "</p>")
-        gr.Markdown(value="<center><font size=8>Infinity Chat Bot</center>")
+        gr.Markdown(value="<center><font size=8>Infinity Large Language Model</center>")
         gr.Markdown(value="<center><font size=4>😸 This Web UI is based on Infinity Model, developed by Rhys. 😸</center>")
         gr.Markdown(value="<center><font size=4>🔥 <a href='https://openi.pcl.ac.cn/rhys2985/Infinity'>项目地址</a> 🔥</center>")
         with gr.Row():
