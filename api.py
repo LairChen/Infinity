@@ -4,6 +4,7 @@ from re import match
 from typing import Union, Optional
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from tiktoken import get_encoding
 from uvicorn import run
 
@@ -50,14 +51,10 @@ language_model = init_language_model()
 embedding_model = init_embedding_model()
 
 
-# @app.get(rule="/", methods=["GET"])
-# def homepage() -> str:
-#     """接口服务首页"""
-#     return render_template(template_name_or_list="Infinity.html")  # noqa
-@app.get(path=prefix + "/")
+@app.get(path=prefix + "/", response_class=HTMLResponse)
 def homepage():
     """接口服务首页"""
-    return {"hello": "hello"}
+    return open(file="templates/Infinity.html", mode="r", encoding="utf-8").read()
 
 
 # @app.route(rule="/v1/chat/completions", methods=["POST"])
@@ -79,35 +76,34 @@ def homepage():
 
 
 @app.post(path=prefix + "/v1/embeddings")
-def embeddings(args: Dict):
+def embeddings(args: Dict) -> Dict:
     """Embeddings接口"""
     req = EmbeddingsRequestSchema().load(args)
     return embeddings_result(req=req)
 
 
-def chat_result(req: Dict) -> str:
+def chat_result(req: Dict) -> Dict:
     """输出模型回答"""
     message = ChatMessageSchema().dump({"role": "assistant", "content": language_model.generate(conversation=req["messages"])})
     choice = ChatChoiceSchema().dump({"index": 0, "message": message})
     return ChatResponseSchema().dump({"model": language_model.name, "choices": [choice]})
 
 
-# @stream_with_context
-# def chat_stream(req: Dict):
-#     """流式输出模型回答"""
-#     index = 0
-#     delta = ChatMessageSchema().dump({"role": "assistant", "content": ""})
-#     choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-#     yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
-#     # 多轮对话，字符型流式输出
-#     for answer in language_model.stream(conversation=req["messages"]):
-#         index += 1
-#         delta = ChatMessageSchema().dump({"role": "assistant", "content": answer})
-#         choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-#         yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
-#     choice = ChatChoiceChunkSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-#     yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
-#     yield chat_sse(line="[DONE]")
+def chat_stream(req: Dict):
+    """流式输出模型回答"""
+    index = 0
+    delta = ChatMessageSchema().dump({"role": "assistant", "content": ""})
+    choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
+    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+    # 多轮对话，字符型流式输出
+    for answer in language_model.stream(conversation=req["messages"]):
+        index += 1
+        delta = ChatMessageSchema().dump({"role": "assistant", "content": answer})
+        choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
+        yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+    choice = ChatChoiceChunkSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
+    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+    yield chat_sse(line="[DONE]")
 
 
 def chat_sse(line: Union[str, Dict]) -> str:
@@ -115,7 +111,7 @@ def chat_sse(line: Union[str, Dict]) -> str:
     return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
-def embeddings_result(req: Dict) -> str:
+def embeddings_result(req: Dict) -> Dict:
     """计算嵌入结果"""
     data = [{"index": index, "embedding": embedding_model.embedding(sentence=text) if embedding_model is not None else []}
             for index, text in enumerate(req["input"])]
