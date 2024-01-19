@@ -121,7 +121,7 @@ class DeepseekModel(BaseChatModel):  # noqa
             # NPU任务需要显式的声明设备
             torch_npu.npu.set_device("npu:0")  # noqa
         input_ids = self.tokenizer.apply_chat_template(conversation=conversation, return_tensors="pt").to(self.model.device)
-        output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
+        output_ids = self.model.generate(inputs=input_ids, do_sample=True, eos_token_id=32021, max_new_tokens=4096)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
@@ -141,7 +141,7 @@ class DeepseekModel(BaseChatModel):  # noqa
         if not use_gpu:
             # NPU任务需要显式的声明设备
             torch_npu.npu.set_device("npu:0")  # noqa
-        self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, eos_token_id=32021, max_new_tokens=1024)
+        self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, eos_token_id=32021, max_new_tokens=4096)
         return None
 
 
@@ -168,7 +168,7 @@ class SusModel(BaseChatModel):
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
-        output_ids = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=1024)
+        output_ids = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=4096)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
@@ -178,7 +178,7 @@ class SusModel(BaseChatModel):
             "input_ids": input_ids,
             "streamer": streamer,
             "do_sample": True,
-            "max_new_tokens": 1024
+            "max_new_tokens": 4096
         }
         Thread(target=self.model.generate, kwargs=generate_kwargs).start()
         for text in streamer:
