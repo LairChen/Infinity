@@ -4,21 +4,11 @@ from re import match
 from typing import Union, Optional
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from tiktoken import get_encoding
 from uvicorn import run
 
 from utils import *
-
-# 初始化接口服务，指定路由前缀
-# AI协作平台上从环境变量中获取路由前缀，其他情况下忽略
-prefix = getenv(key="OPENI_GRADIO_URL", default="")  # noqa
-app = FastAPI()
-
-
-# 包括对话模型/补全模型和嵌入模型，其中对话模型/补全模型从pretrainmodel获取，嵌入模型从dataset获取
-# 对话模型/补全模型必选，嵌入模型可选
-# pretrainmodel模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
 
 
 def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
@@ -47,8 +37,23 @@ def init_embedding_model() -> Optional[BaseEmbeddingModel]:
     return my_model
 
 
+def sse(line: Union[str, Dict]) -> str:
+    """Server Sent Events for stream"""
+    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+
+
+# 包括对话模型/补全模型和嵌入模型，其中对话模型/补全模型从pretrainmodel获取，嵌入模型从dataset获取
+# 对话模型/补全模型必选，嵌入模型可选
+# pretrainmodel模型类别从model_type.txt文件中获取，dataset模型类别从压缩文件名获取
+
 language_model = init_language_model()
 embedding_model = init_embedding_model()
+
+# 初始化接口服务，指定路由前缀
+# AI协作平台上从环境变量中获取路由前缀，其他情况下忽略
+
+prefix = getenv(key="OPENI_GRADIO_URL", default="")  # noqa
+app = FastAPI()
 
 
 @app.get(path=prefix + "/", response_class=HTMLResponse)
@@ -57,16 +62,16 @@ def homepage():
     return open(file="templates/Infinity.html", mode="r", encoding="utf-8").read()
 
 
-# @app.route(rule="/v1/chat/completions", methods=["POST"])
-# def chat() -> Response:
-#     """Chat接口"""
-#     req = ChatRequestSchema().load(request.json)
-#     if req["stream"]:
-#         # 流式响应
-#         return current_app.response_class(response=chat_stream(req=req), mimetype="text/event-stream")
-#     else:
-#         # 非流式响应
-#         return jsonify(chat_result(req=req))
+@app.post(path=prefix + "/v1/chat/completions")
+def chat(args: Dict) -> Union[StreamingResponse, Dict]:
+    """Chat接口"""
+    req = ChatRequestSchema().load(args)
+    if req["stream"]:
+        # 流式响应
+        return StreamingResponse(content=chat_stream(req=req), media_type="text/event-stream")
+    else:
+        # 非流式响应
+        return chat_result(req=req)
 
 
 # @api.route(rule="/v1/completions", methods=["POST"])
@@ -94,21 +99,16 @@ def chat_stream(req: Dict):
     index = 0
     delta = ChatMessageSchema().dump({"role": "assistant", "content": ""})
     choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+    yield sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
     # 多轮对话，字符型流式输出
     for answer in language_model.stream(conversation=req["messages"]):
         index += 1
         delta = ChatMessageSchema().dump({"role": "assistant", "content": answer})
         choice = ChatChoiceChunkSchema().dump({"index": index, "delta": delta, "finish_reason": None})
-        yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+        yield sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
     choice = ChatChoiceChunkSchema().dump({"index": 0, "delta": {}, "finish_reason": "stop"})
-    yield chat_sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
-    yield chat_sse(line="[DONE]")
-
-
-def chat_sse(line: Union[str, Dict]) -> str:
-    """Server Sent Events for stream"""
-    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
+    yield sse(line=ChatResponseChunkSchema().dump({"model": language_model.name, "choices": [choice]}))
+    yield sse(line="[DONE]")
 
 
 def embeddings_result(req: Dict) -> Dict:
