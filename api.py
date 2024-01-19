@@ -4,7 +4,7 @@ from re import match
 from typing import Union, Optional
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from tiktoken import get_encoding
 from uvicorn import run
 
@@ -62,7 +62,7 @@ def homepage():
     return open(file="templates/Infinity.html", mode="r", encoding="utf-8").read()
 
 
-@app.post(path=prefix + "/v1/chat/completions")
+@app.post(path=prefix + "/v1/chat/completions", response_model=None)
 def chat(args: Dict) -> Union[StreamingResponse, Dict]:
     """Chat接口"""
     req = ChatRequestSchema().load(args)
@@ -80,7 +80,7 @@ def chat(args: Dict) -> Union[StreamingResponse, Dict]:
 #     return jsonify("")
 
 
-@app.post(path=prefix + "/v1/embeddings")
+@app.post(path=prefix + "/v1/embeddings", response_class=JSONResponse)
 def embeddings(args: Dict) -> Dict:
     """Embeddings接口"""
     req = EmbeddingsRequestSchema().load(args)
