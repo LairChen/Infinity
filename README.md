@@ -30,13 +30,13 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * SUS-Chat-34B
 * SUS-Chat-34B-GPTQ
 
-### Work Station
+### Work Stations
 
 **debug mode**: Schedule daily task to obtain computing power points.
 
 **train mode**: Based on your own business data, tune and save the large language model.
 
-**online infer mode**: Use FastAPI and Gradio to offer an online prediction stage.
+**infer mode**: Use FastAPI and Gradio to offer an online prediction stage.
 
 ***
 
