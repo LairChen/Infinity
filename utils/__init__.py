@@ -18,6 +18,7 @@ COMPLETION_MODEL_TYPE = {
 }
 
 EMBEDDING_MODEL_TYPE = {
+    "bce-embedding-base-v1": BceModel,
     "m3e-base": M3eModel,
     "m3e-small": M3eModel,
     "m3e-large": M3eModel
