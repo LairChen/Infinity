@@ -20,14 +20,12 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * bce-embedding-base-v1
 * deepseek-coder-1.3b-instruct
 * deepseek-coder-6.7b-instruct
-* deepseek-coder-33b-instruct
 * deepseek-coder-33B-instruct-GPTQ
 * m3e-base
 * m3e-small
 * m3e-large
 * pyramidbox-face-detection
 * stable-diffusion
-* SUS-Chat-34B
 * SUS-Chat-34B-GPTQ
 
 ### Work Stations
