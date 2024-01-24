@@ -1,7 +1,6 @@
 from threading import Thread
 from typing import Dict, List
 
-import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
@@ -74,7 +73,7 @@ class Baichuan2Model(BaseChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map="cuda:0",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -103,7 +102,7 @@ class DeepseekModel(BaseChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
             torch_dtype=torch.float16,
-            device_map="auto" if use_gpu else "npu:0",
+            device_map="cuda:0" if use_gpu else "npu:0",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -153,7 +152,7 @@ class SusModel(BaseChatModel):
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=path,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map="cuda:0",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -200,25 +199,41 @@ class SusModel(BaseChatModel):
         return ans
 
 
+class BceModel(BaseEmbeddingModel):
+    """class for bce model"""
+
+    def __init__(self, name: str, path: str):
+        super(BceModel, self).__init__(name=name)
+        from transformers import AutoModel
+        self.model = AutoModel.from_pretrained(
+            pretrained_model_name_or_path=path,
+            torch_dtype=torch.float16,
+            device_map="cuda:0",  # noqa
+            trust_remote_code=True
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=path,
+            use_fast=False,
+            trust_remote_code=True
+        )
+
+    def embedding(self, sentence: str) -> List[float]:
+        inputs = self.tokenizer([sentence], padding=True, truncation=True, max_length=512, return_tensors="pt")
+        inputs_on_device = {k: v.to(self.model.device) for k, v in inputs.items()}
+        outputs = self.model(**inputs_on_device, return_dict=True)
+        result = outputs.last_hidden_state[:, 0]
+        result = result / result.norm(dim=1, keepdim=True)
+        return result.tolist()[0]
+
+
 class M3eModel(BaseEmbeddingModel):
     """class for m3e model"""
 
     def __init__(self, name: str, path: str):
         super(M3eModel, self).__init__(name=name)
         from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name_or_path=path)
+        self.model = SentenceTransformer(model_name_or_path=path, device="cuda:0")  # noqa
 
     def embedding(self, sentence: str) -> List[float]:
-        from sklearn.preprocessing import PolynomialFeatures
         result = self.model.encode(sentences=sentence)
-        # OpenAI API 嵌入维度标准 1536
-        if len(result) < 1536:
-            result = PolynomialFeatures(degree=2).fit_transform(X=result.reshape(1, -1)).flatten()
-            if len(result) < 1536:
-                result = np.pad(array=result, pad_width=(0, 1536 - len(result)))
-            else:
-                result = result[:1536]
-        else:
-            result = result[:1536]
-        result = result / np.linalg.norm(x=result)
         return result.tolist()
