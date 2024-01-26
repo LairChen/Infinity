@@ -12,8 +12,8 @@ CHAT_MODEL_TYPE = {
 }
 
 COMPLETION_MODEL_TYPE = {
-    "Qwen-1.8B": QwenBaseModel,  # noqa
-    "Qwen-7B": QwenBaseModel  # noqa
+    #"Qwen-1.8B": QwenBaseModel,  # noqa
+    #"Qwen-7B": QwenBaseModel  # noqa
 }
 
 EMBEDDING_MODEL_TYPE = {
