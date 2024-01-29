@@ -26,6 +26,9 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * m3e-large
 * pyramidbox-face-detection
 * stable-diffusion
+* Qwen-1.8B
+* Qwen-7B
+* Qwen-14B
 * SUS-Chat-34B-GPTQ
 
 ### Work Stations
