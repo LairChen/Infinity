@@ -8,12 +8,14 @@ CHAT_MODEL_TYPE = {
     "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
     "deepseek-coder-33B-instruct-GPTQ": DeepseekModel,  # noqa
+    "internlm2-chat-7b": Internlm2Model,  # noqa
     "SUS-Chat-34B-GPTQ": SusModel  # noqa
 }
 
 COMPLETION_MODEL_TYPE = {
     "Qwen-1.8B": QwenBaseModel,  # noqa
-    "Qwen-7B": QwenBaseModel  # noqa
+    "Qwen-7B": QwenBaseModel,  # noqa
+    "Qwen-14B": QwenBaseModel
 }
 
 EMBEDDING_MODEL_TYPE = {
