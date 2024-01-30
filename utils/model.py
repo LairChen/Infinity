@@ -141,6 +141,40 @@ class DeepseekModel(BaseChatModel):  # noqa
         return None
 
 
+class Internlm2Model(BaseChatModel):  # noqa
+    """class for internlm model"""
+
+    def __init__(self, name: str, path: str):
+        super(Internlm2Model, self).__init__(name=name, path=path)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=self.path,
+            torch_dtype=torch.float16,
+            device_map="cuda:0",  # noqa
+            trust_remote_code=True
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=self.path,
+            use_fast=False,
+            trust_remote_code=True
+        )
+
+    def generate(self, conversation: List[Dict[str, str]]) -> str:
+        pass
+
+    def stream(self, conversation: List[Dict[str, str]]):
+        query = conversation[-1]["content"]
+        history = [(conversation[i << 1]["content"], conversation[(i << 1) + 1]["content"])
+                   for i in range(len(conversation) >> 1)]
+        position = 0
+        for answer, _ in self.model.stream_chat(tokenizer=self.tokenizer, query=query, history=history):
+            yield answer[position:]
+            position = len(answer)
+
+
+class OrionModel(BaseChatModel):
+    """class for orion model"""
+
+
 class SusModel(BaseChatModel):
     """class for sus model"""
 
