@@ -171,10 +171,6 @@ class Internlm2Model(BaseChatModel):  # noqa
             position = len(answer)
 
 
-class OrionModel(BaseChatModel):
-    """class for orion model"""
-
-
 class SusModel(BaseChatModel):
     """class for sus model"""
 
