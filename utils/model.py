@@ -1,3 +1,4 @@
+from os import environ
 from threading import Thread
 from typing import Dict, List
 
@@ -12,19 +13,19 @@ if not torch.cuda.is_available():
     use_gpu = False
 
 
-class BaseModel(object):
-    """base class for all models"""
+class LargeLanguageModel(object):
+    """base class for all large language models"""
 
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
 
 
-class BaseChatModel(BaseModel):
+class ChatModel(LargeLanguageModel):
     """base class for chat models"""
 
     def __init__(self, name: str, path: str):
-        super(BaseChatModel, self).__init__(name=name, path=path)
+        super(ChatModel, self).__init__(name=name, path=path)
         self.model = None
         self.tokenizer = None
 
@@ -37,11 +38,11 @@ class BaseChatModel(BaseModel):
         raise NotImplementedError("method: stream")
 
 
-class BaseCompletionModel(BaseModel):
+class CompletionModel(LargeLanguageModel):
     """base class for completion models"""
 
     def __init__(self, name: str, path: str):
-        super(BaseCompletionModel, self).__init__(name=name, path=path)
+        super(CompletionModel, self).__init__(name=name, path=path)
         self.model = None
         self.tokenizer = None
 
@@ -54,11 +55,11 @@ class BaseCompletionModel(BaseModel):
         raise NotImplementedError("method: stream")
 
 
-class BaseEmbeddingModel(BaseModel):
+class EmbeddingModel(LargeLanguageModel):
     """base class for embedding models"""
 
     def __init__(self, name: str, path: str):
-        super(BaseEmbeddingModel, self).__init__(name=name, path=path)
+        super(EmbeddingModel, self).__init__(name=name, path=path)
         self.model = None
 
     def embedding(self, sentence: str) -> List[float]:
@@ -66,11 +67,11 @@ class BaseEmbeddingModel(BaseModel):
         raise NotImplementedError("method: embedding")
 
 
-class Baichuan2Model(BaseChatModel):  # noqa
-    """class for baichuan2 model"""
+class Baichuan2ChatModel(ChatModel):  # noqa
+    """class for baichuan2 chat model"""
 
     def __init__(self, name: str, path: str):
-        super(Baichuan2Model, self).__init__(name=name, path=path)
+        super(Baichuan2ChatModel, self).__init__(name=name, path=path)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
@@ -93,11 +94,61 @@ class Baichuan2Model(BaseChatModel):  # noqa
             position = len(answer)
 
 
-class DeepseekModel(BaseChatModel):  # noqa
-    """class for deepseek model"""
+class CodefuseDeepseekModel(ChatModel):  # noqa
+    """class for codefuse deepseek model"""
 
     def __init__(self, name: str, path: str):
-        super(DeepseekModel, self).__init__(name=name, path=path)
+        super(CodefuseDeepseekModel, self).__init__(name=name, path=path)
+        from auto_gptq import AutoGPTQForCausalLM
+        environ["TOKENIZERS_PARALLELISM"] = "false"  # noqa
+        self.model = AutoGPTQForCausalLM.from_quantized(
+            model_name_or_path=self.path,
+            device_map="cuda:0",  # noqa
+            inject_fused_attention=False,
+            inject_fused_mlp=False,
+            use_cuda_fp16=True,
+            use_safetensors=True,
+            disable_exllama=False,
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=self.path,
+            use_fast=False,
+            trust_remote_code=True
+        )
+        self.tokenizer.padding_side = "left"
+        self.tokenizer.pad_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
+        self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
+
+    def generate(self, conversation: List[Dict[str, str]]) -> str:
+        pass
+
+    def stream(self, conversation: List[Dict[str, str]]):
+        pass
+
+    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
+        """流式响应的子任务"""
+        pass
+
+    @staticmethod
+    def chat_template(conversation: List[Dict[str, str]]) -> str:
+        """生成提示词模板"""
+        ans = ""
+        for message in conversation:
+            role, content = message["role"], message["content"]
+            if role == "user":
+                ans += "<s>human\n{}\n<s>bot\n".format(content)
+            elif role == "assistant":
+                ans += "{}<｜end▁of▁sentence｜>\n".format(content)
+            else:
+                raise ValueError("error conversation or history")
+        return ans
+
+
+class DeepseekCoderInstructModel(ChatModel):  # noqa
+    """class for deepseek coder instruct model"""
+
+    def __init__(self, name: str, path: str):
+        super(DeepseekCoderInstructModel, self).__init__(name=name, path=path)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
@@ -141,11 +192,11 @@ class DeepseekModel(BaseChatModel):  # noqa
         return None
 
 
-class Internlm2Model(BaseChatModel):  # noqa
-    """class for internlm model"""
+class Internlm2ChatModel(ChatModel):  # noqa
+    """class for internlm2 chat model"""
 
     def __init__(self, name: str, path: str):
-        super(Internlm2Model, self).__init__(name=name, path=path)
+        super(Internlm2ChatModel, self).__init__(name=name, path=path)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
@@ -170,12 +221,16 @@ class Internlm2Model(BaseChatModel):  # noqa
             yield answer[position:]
             position = len(answer)
 
+    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
+        """流式响应的子任务"""
+        pass
 
-class SusModel(BaseChatModel):
-    """class for sus model"""
+
+class SusChatModel(ChatModel):
+    """class for sus chat model"""
 
     def __init__(self, name: str, path: str):
-        super(SusModel, self).__init__(name=name, path=path)
+        super(SusChatModel, self).__init__(name=name, path=path)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
@@ -210,6 +265,10 @@ class SusModel(BaseChatModel):
         for text in streamer:
             yield text
 
+    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
+        """流式响应的子任务"""
+        pass
+
     @staticmethod
     def chat_template(conversation: List[Dict[str, str]]) -> str:
         """生成提示词模板"""
@@ -225,11 +284,11 @@ class SusModel(BaseChatModel):
         return ans
 
 
-class QwenBaseModel(BaseCompletionModel):  # noqa
-    """class for qwen base model"""
+class QwenModel(CompletionModel):  # noqa
+    """class for qwen model"""
 
     def __init__(self, name: str, path: str):
-        super(QwenBaseModel, self).__init__(name=name, path=path)
+        super(QwenModel, self).__init__(name=name, path=path)
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
@@ -260,7 +319,7 @@ class QwenBaseModel(BaseCompletionModel):  # noqa
         return None
 
 
-class BceModel(BaseEmbeddingModel):
+class BceModel(EmbeddingModel):
     """class for bce model"""
 
     def __init__(self, name: str, path: str):
@@ -287,7 +346,7 @@ class BceModel(BaseEmbeddingModel):
         return output_ids.tolist()[0]
 
 
-class M3eModel(BaseEmbeddingModel):
+class M3eModel(EmbeddingModel):
     """class for m3e model"""
 
     def __init__(self, name: str, path: str):
