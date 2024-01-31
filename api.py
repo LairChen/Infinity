@@ -11,7 +11,7 @@ from uvicorn import run
 from utils import *
 
 
-def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
+def init_language_model() -> Union[ChatModel, CompletionModel]:
     """初始化对话/补全模型"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read().strip()
@@ -24,7 +24,7 @@ def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
     return my_model
 
 
-def init_embedding_model() -> Optional[BaseEmbeddingModel]:
+def init_embedding_model() -> Optional[EmbeddingModel]:
     """初始化嵌入模型"""
     for filename in listdir(path_eval_pretrain):
         modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
@@ -74,10 +74,16 @@ def chat(args: Dict) -> Union[StreamingResponse, Dict]:
         return chat_result(req=req)
 
 
-# @api.route(rule="/v1/completions", methods=["POST"])
-# def completions() -> Response:
+# @app.post(path=prefix + "/v1/completions", response_model=None)
+# def completions(args: Dict) -> Union[StreamingResponse, Dict]:
 #     """Completions接口"""
-#     return jsonify("")
+#     req = CompletionsRequestSchema().load(args)
+#     if req["stream"]:
+#         # 流式响应
+#         pass
+#     else:
+#         # 非流式响应
+#         pass
 
 
 @app.post(path=prefix + "/v1/embeddings", response_class=JSONResponse)
