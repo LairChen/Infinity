@@ -1,7 +1,7 @@
 from json import dumps
 from os import listdir, getenv
 from re import match
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
