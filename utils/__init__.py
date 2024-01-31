@@ -1,6 +1,12 @@
 from .config import appHost, appPort, path_train_pretrain, path_train_finetune, path_eval_pretrain, path_eval_finetune, llm
-from .model import *
-from .schema import *
+from .model import Baichuan2ChatModel, CodefuseDeepseekModel, DeepseekCoderInstructModel, Internlm2ChatModel, SusChatModel
+from .model import BceModel, M3eModel
+from .model import ChatModel, CompletionModel, EmbeddingModel
+from .model import QwenModel
+from .schema import ChatMessageSchema, ChatRequestSchema, ChatChoiceSchema, ChatChoiceChunkSchema, ChatResponseSchema, \
+    ChatResponseChunkSchema
+from .schema import CompletionsRequestSchema
+from .schema import EmbeddingsRequestSchema, EmbeddingsDataSchema, EmbeddingsUsageSchema, EmbeddingsResponseSchema
 
 CHAT_MODEL_TYPE = {
     "Baichuan2-7B-Chat": Baichuan2ChatModel,  # noqa
