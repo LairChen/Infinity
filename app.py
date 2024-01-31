@@ -1,5 +1,5 @@
 from os import getenv
-from typing import Union, Tuple
+from typing import Union, Tuple, List, Dict
 
 import gradio as gr
 from fastapi import FastAPI
@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from utils import *
 
 
-def init_language_model() -> Union[BaseChatModel, BaseCompletionModel]:
+def init_language_model() -> Union[ChatModel, CompletionModel]:
     """初始化模型和词表"""
     with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
         my_model_name = f.read().strip()
