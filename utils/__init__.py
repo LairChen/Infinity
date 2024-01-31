@@ -3,19 +3,20 @@ from .model import *
 from .schema import *
 
 CHAT_MODEL_TYPE = {
-    "Baichuan2-7B-Chat": Baichuan2Model,  # noqa
-    "Baichuan2-13B-Chat": Baichuan2Model,  # noqa
-    "deepseek-coder-1.3b-instruct": DeepseekModel,  # noqa
-    "deepseek-coder-6.7b-instruct": DeepseekModel,  # noqa
-    "deepseek-coder-33B-instruct-GPTQ": DeepseekModel,  # noqa
-    "internlm2-chat-7b": Internlm2Model,  # noqa
-    "SUS-Chat-34B-GPTQ": SusModel  # noqa
+    "Baichuan2-7B-Chat": Baichuan2ChatModel,  # noqa
+    "Baichuan2-13B-Chat": Baichuan2ChatModel,  # noqa
+    "CodeFuse-DeepSeek-33B-4bits": CodefuseDeepseekModel,
+    "deepseek-coder-1.3b-instruct": DeepseekCoderInstructModel,  # noqa
+    "deepseek-coder-6.7b-instruct": DeepseekCoderInstructModel,  # noqa
+    "deepseek-coder-33B-instruct-GPTQ": DeepseekCoderInstructModel,  # noqa
+    "internlm2-chat-7b": Internlm2ChatModel,  # noqa
+    "SUS-Chat-34B-GPTQ": SusChatModel  # noqa
 }
 
 COMPLETION_MODEL_TYPE = {
-    "Qwen-1.8B": QwenBaseModel,  # noqa
-    "Qwen-7B": QwenBaseModel,  # noqa
-    "Qwen-14B": QwenBaseModel
+    "Qwen-1.8B": QwenModel,  # noqa
+    "Qwen-7B": QwenModel,  # noqa
+    "Qwen-14B": QwenModel  # noqa
 }
 
 EMBEDDING_MODEL_TYPE = {
