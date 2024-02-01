@@ -221,10 +221,6 @@ class Internlm2ChatModel(ChatModel):  # noqa
             yield answer[position:]
             position = len(answer)
 
-    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
-        """流式响应的子任务"""
-        pass
-
 
 class SusChatModel(ChatModel):
     """class for sus chat model"""
@@ -254,20 +250,15 @@ class SusChatModel(ChatModel):
 
     def stream(self, conversation: List[Dict[str, str]]):
         input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
-        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=5.0, skip_prompt=True, skip_special_tokens=True)
-        generate_kwargs = {
-            "input_ids": input_ids,
-            "streamer": streamer,
-            "do_sample": True,
-            "max_new_tokens": 4096
-        }
-        Thread(target=self.model.generate, kwargs=generate_kwargs).start()
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=None, skip_prompt=True, skip_special_tokens=True)
+        Thread(target=self.stream_task, args=(input_ids, streamer)).start()
         for text in streamer:
             yield text
 
     def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
-        pass
+        self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, max_new_tokens=4096)
+        return None
 
     @staticmethod
     def chat_template(conversation: List[Dict[str, str]]) -> str:
