@@ -1,24 +1,10 @@
 from os import getenv
-from typing import Union, Tuple, List, Dict
+from typing import Tuple, List, Dict
 
 import gradio as gr
 from fastapi import FastAPI
 
 from utils import *
-
-
-def init_language_model() -> Union[ChatModel, CompletionModel]:
-    """初始化模型和词表"""
-    with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
-        my_model_name = f.read().strip()
-    if CHAT_MODEL_TYPE.get(my_model_name, None) is not None:
-        my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
-    elif COMPLETION_MODEL_TYPE.get(my_model_name, None) is not None:
-        my_model = COMPLETION_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
-    else:
-        raise FileNotFoundError("no existing language model")
-    return my_model
-
 
 model = init_language_model()
 
