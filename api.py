@@ -1,7 +1,6 @@
 from json import dumps
-from os import listdir, getenv
-from re import match
-from typing import Union, Optional, Dict
+from os import getenv
+from typing import Union, Dict
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -9,38 +8,6 @@ from tiktoken import get_encoding
 from uvicorn import run
 
 from utils import *
-
-
-def init_language_model() -> Union[ChatModel, CompletionModel]:
-    """初始化对话/补全模型"""
-    with open(file="{}/model_type.txt".format(path_eval_finetune), mode="r", encoding="utf-8") as f:
-        my_model_name = f.read().strip()
-    if CHAT_MODEL_TYPE.get(my_model_name, None) is not None:
-        my_model = CHAT_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
-    elif COMPLETION_MODEL_TYPE.get(my_model_name, None) is not None:
-        my_model = COMPLETION_MODEL_TYPE[my_model_name](name=my_model_name, path=path_eval_finetune)
-    else:
-        raise FileNotFoundError("no existing language model")
-    return my_model
-
-
-def init_embedding_model() -> Optional[EmbeddingModel]:
-    """初始化嵌入模型"""
-    for filename in listdir(path_eval_pretrain):
-        modelname = match(pattern="(.*)\.zip", string=filename)  # noqa
-        if modelname is not None:
-            my_model_name = modelname.groups()[0]
-            break
-    else:
-        return None
-    my_model = EMBEDDING_MODEL_TYPE[my_model_name](name=my_model_name, path=my_model_name)
-    return my_model
-
-
-def sse(line: Union[str, Dict]) -> str:
-    """Server Sent Events for stream"""
-    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
-
 
 # 包括对话模型/补全模型和嵌入模型，其中对话模型/补全模型从pretrainmodel获取，嵌入模型从dataset获取
 # 对话模型/补全模型必选，嵌入模型可选
@@ -54,6 +21,11 @@ embedding_model = init_embedding_model()
 
 prefix = getenv(key="OPENI_GRADIO_URL", default="")  # noqa
 app = FastAPI()
+
+
+def sse(line: Union[str, Dict]) -> str:
+    """Server Sent Events for stream"""
+    return "data: {}\n\n".format(dumps(obj=line, ensure_ascii=False) if isinstance(line, dict) else line)
 
 
 @app.get(path=prefix + "/", response_class=HTMLResponse)
@@ -71,7 +43,7 @@ def chat(args: Dict) -> Union[StreamingResponse, Dict]:
         return StreamingResponse(content=chat_stream(req=req), media_type="text/event-stream")
     else:
         # 非流式响应
-        return chat_result(req=req)
+        return chat_generate(req=req)
 
 
 # @app.post(path=prefix + "/v1/completions", response_model=None)
@@ -93,7 +65,7 @@ def embeddings(args: Dict) -> Dict:
     return embeddings_result(req=req)
 
 
-def chat_result(req: Dict) -> Dict:
+def chat_generate(req: Dict) -> Dict:
     """输出模型回答"""
     message = ChatMessageSchema().dump({"role": "assistant", "content": language_model.generate(conversation=req["messages"])})
     choice = ChatChoiceSchema().dump({"index": 0, "message": message})
