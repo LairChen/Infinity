@@ -255,7 +255,7 @@ class SusChatModel(ChatModel):
         for text in streamer:
             yield text
 
-    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
+    def stream_task(self, input_ids: torch.Tensor, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
         self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, max_new_tokens=4096)
         return None
