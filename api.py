@@ -1,6 +1,6 @@
 from json import dumps
 from os import getenv
-from typing import Union, Dict
+from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
