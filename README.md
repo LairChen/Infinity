@@ -18,6 +18,7 @@ With Infinity, you can train models to connect to your downstream jobs, and prov
 * Baichuan2-7B-Chat
 * Baichuan2-13B-Chat
 * bce-embedding-base-v1
+* chinese-ocr-db-crnn-server
 * CodeFuse-DeepSeek-33B-4bits
 * deepseek-coder-1.3b-instruct
 * deepseek-coder-6.7b-instruct
