@@ -189,7 +189,7 @@ class DeepseekCoderInstructModel(ChatModel):  # noqa
             # NPU任务需要显式的声明设备
             torch_npu.npu.set_device("npu:0")  # noqa
         self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, eos_token_id=32021, max_new_tokens=4096)
-        return None
+        return
 
 
 class Internlm2ChatModel(ChatModel):  # noqa
@@ -258,7 +258,7 @@ class SusChatModel(ChatModel):
     def stream_task(self, input_ids: torch.Tensor, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
         self.model.generate(inputs=input_ids, streamer=streamer, do_sample=True, max_new_tokens=4096)
-        return None
+        return
 
     @staticmethod
     def chat_template(conversation: List[Dict[str, str]]) -> str:
@@ -307,7 +307,7 @@ class QwenModel(CompletionModel):  # noqa
     def stream_task(self, input_ids: Dict, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
         self.model.generate(**input_ids, streamer=streamer, do_sample=True, max_new_tokens=4096)
-        return None
+        return
 
 
 class BceModel(EmbeddingModel):
