@@ -9,7 +9,7 @@ from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS
 from paddlehub import Module
 
-# online inference only for pyramid box
+# online inference only for pyramidbox face detection
 
 # 全局模型
 model = None
