@@ -127,14 +127,14 @@ class CodefuseDeepseekModel(ChatModel):  # noqa
 
     def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
-        pass
+        return
 
     @staticmethod
-    def chat_template(conversation: List[Dict[str, str]]) -> str:
+    def chat_template(convo: List[Dict[str, str]]) -> str:  # noqa
         """生成提示词模板"""
         ans = ""
-        for message in conversation:
-            role, content = message["role"], message["content"]
+        for msg in convo:
+            role, content = msg["role"], msg["content"]
             if role == "user":
                 ans += "<s>human\n{}\n<s>bot\n".format(content)
             elif role == "assistant":
@@ -244,12 +244,12 @@ class SusChatModel(ChatModel):
             self.model = exllama_set_max_input_length(model=self.model, max_input_length=4096)
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
+        input_ids = self.tokenizer.encode(text=self.chat_template(convo=conversation), return_tensors="pt").to(self.model.device)
         output_ids = self.model.generate(inputs=input_ids, do_sample=True, max_new_tokens=4096)
         return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
-        input_ids = self.tokenizer.encode(text=self.chat_template(conversation), return_tensors="pt").to(self.model.device)
+        input_ids = self.tokenizer.encode(text=self.chat_template(convo=conversation), return_tensors="pt").to(self.model.device)
         streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=None, skip_prompt=True, skip_special_tokens=True)
         Thread(target=self.stream_task, args=(input_ids, streamer)).start()
         for text in streamer:
@@ -261,11 +261,11 @@ class SusChatModel(ChatModel):
         return
 
     @staticmethod
-    def chat_template(conversation: List[Dict[str, str]]) -> str:
+    def chat_template(convo: List[Dict[str, str]]) -> str:  # noqa
         """生成提示词模板"""
         ans = ""
-        for message in conversation:
-            role, content = message["role"], message["content"]
+        for msg in convo:
+            role, content = msg["role"], msg["content"]
             if role == "user":
                 ans += "### Human: {}\n\n### Assistant: ".format(content)
             elif role == "assistant":
