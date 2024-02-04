@@ -122,9 +122,9 @@ class CodefuseDeepseekModel(ChatModel):  # noqa
             use_fast=False,
             trust_remote_code=True
         )
-        self.tokenizer.padding_side = "left"
-        self.tokenizer.pad_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
         self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
+        self.tokenizer.pad_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
+        self.tokenizer.padding_side = "left"
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
         input_ids = self.tokenizer.encode(
