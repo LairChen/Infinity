@@ -1,4 +1,3 @@
-from os import environ
 from threading import Thread
 from typing import Dict, List
 
@@ -75,7 +74,7 @@ class Baichuan2ChatModel(ChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0",  # noqa
+            device_map="auto",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -99,17 +98,25 @@ class CodefuseDeepseekModel(ChatModel):  # noqa
 
     def __init__(self, name: str, path: str):
         super(CodefuseDeepseekModel, self).__init__(name=name, path=path)
-        from auto_gptq import AutoGPTQForCausalLM
-        environ["TOKENIZERS_PARALLELISM"] = "false"  # noqa
-        self.model = AutoGPTQForCausalLM.from_quantized(
-            model_name_or_path=self.path,
-            device_map="cuda:0",  # noqa
-            inject_fused_attention=False,
-            inject_fused_mlp=False,
-            use_cuda_fp16=True,
-            use_safetensors=True,
-            disable_exllama=False,
-        )
+        if not self.name.endswith("bits"):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                pretrained_model_name_or_path=self.path,
+                torch_dtype=torch.float16,
+                device_map="auto",  # noqa
+                trust_remote_code=True
+            )
+        else:
+            # GPTQ量化模型使用额外的加载方式
+            from auto_gptq import AutoGPTQForCausalLM
+            self.model = AutoGPTQForCausalLM.from_quantized(
+                model_name_or_path=self.path,
+                device_map="auto",  # noqa
+                inject_fused_attention=False,
+                inject_fused_mlp=False,
+                use_cuda_fp16=True,
+                use_safetensors=True,
+                disable_exllama=False,
+            )
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=self.path,
             use_fast=False,
@@ -120,13 +127,43 @@ class CodefuseDeepseekModel(ChatModel):  # noqa
         self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids("<｜end▁of▁sentence｜>")
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        pass
+        input_ids = self.tokenizer.encode(
+            text=self.chat_template(convo=conversation),
+            return_tensors="pt",
+            padding=True,
+            add_special_tokens=False
+        ).to(self.model.device)
+        output_ids = self.model.generate(
+            input_ids=input_ids,
+            do_sample=True,
+            eos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.pad_token_id,
+            max_new_tokens=4096
+        )
+        return self.tokenizer.decode(token_ids=output_ids[0][len(input_ids[0]):], skip_special_tokens=True)
 
     def stream(self, conversation: List[Dict[str, str]]):
-        pass
+        input_ids = self.tokenizer.encode(
+            text=self.chat_template(convo=conversation),
+            return_tensors="pt",
+            padding=True,
+            add_special_tokens=False
+        ).to(self.model.device)
+        streamer = TextIteratorStreamer(tokenizer=self.tokenizer, timeout=None, skip_prompt=True, skip_special_tokens=True)
+        Thread(target=self.stream_task, args=(input_ids, streamer)).start()
+        for text in streamer:
+            yield text
 
-    def stream_task(self, input_ids, streamer: TextIteratorStreamer) -> None:
+    def stream_task(self, input_ids: torch.Tensor, streamer: TextIteratorStreamer) -> None:
         """流式响应的子任务"""
+        self.model.generate(
+            input_ids=input_ids,
+            streamer=streamer,
+            do_sample=True,
+            eos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.pad_token_id,
+            max_new_tokens=4096
+        )
         return
 
     @staticmethod
@@ -152,7 +189,7 @@ class DeepseekCoderInstructModel(ChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0" if use_gpu else "npu:0",  # noqa
+            device_map="auto" if use_gpu else "npu:0",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -200,7 +237,7 @@ class Internlm2ChatModel(ChatModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0",  # noqa
+            device_map="auto",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -210,7 +247,10 @@ class Internlm2ChatModel(ChatModel):  # noqa
         )
 
     def generate(self, conversation: List[Dict[str, str]]) -> str:
-        pass
+        query = conversation[-1]["content"]
+        history = [(conversation[i << 1]["content"], conversation[(i << 1) + 1]["content"])
+                   for i in range(len(conversation) >> 1)]
+        return self.model.chat(tokenizer=self.tokenizer, query=query, history=history)
 
     def stream(self, conversation: List[Dict[str, str]]):
         query = conversation[-1]["content"]
@@ -230,7 +270,7 @@ class SusChatModel(ChatModel):
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0",  # noqa
+            device_map="auto",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -283,7 +323,7 @@ class QwenModel(CompletionModel):  # noqa
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0",  # noqa
+            device_map="auto",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -319,7 +359,7 @@ class BceModel(EmbeddingModel):
         self.model = AutoModel.from_pretrained(
             pretrained_model_name_or_path=self.path,
             torch_dtype=torch.float16,
-            device_map="cuda:0",  # noqa
+            device_map="auto",  # noqa
             trust_remote_code=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -343,7 +383,7 @@ class M3eModel(EmbeddingModel):
     def __init__(self, name: str, path: str):
         super(M3eModel, self).__init__(name=name, path=path)
         from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name_or_path=self.path, device="cuda:0")  # noqa
+        self.model = SentenceTransformer(model_name_or_path=self.path, device="cuda")  # noqa
 
     def embedding(self, sentence: str) -> List[float]:
         result = self.model.encode(sentences=sentence)
